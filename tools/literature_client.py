@@ -27,6 +27,37 @@ ARXIV_NS = {
     'arxiv': 'http://arxiv.org/schemas/atom'
 }
 
+DOMAIN_PROFILES: Dict[str, Dict[str, float]] = {
+    'general': {
+        'citation_weight': 1.0,
+        'recency_weight': 1.0,
+        'recency_max': 5.0,
+        'recency_decay_per_year': 0.5,
+        'open_access_bonus': 0.25,
+    },
+    'fast-moving-ml': {
+        'citation_weight': 0.6,
+        'recency_weight': 2.0,
+        'recency_max': 8.0,
+        'recency_decay_per_year': 0.35,
+        'open_access_bonus': 0.5,
+    },
+    'theory': {
+        'citation_weight': 1.35,
+        'recency_weight': 0.65,
+        'recency_max': 3.0,
+        'recency_decay_per_year': 0.25,
+        'open_access_bonus': 0.0,
+    },
+    'biomedical': {
+        'citation_weight': 1.1,
+        'recency_weight': 1.15,
+        'recency_max': 5.5,
+        'recency_decay_per_year': 0.4,
+        'open_access_bonus': 0.4,
+    },
+}
+
 
 @dataclass(frozen=True)
 class APIConfig:
@@ -118,13 +149,55 @@ def _citation_metric(paper: Dict[str, Any]) -> int:
     return 0
 
 
-def _score_paper(paper: Dict[str, Any], current_year: int) -> float:
+def _crossref_year(item: Dict[str, Any]) -> Optional[int]:
+    """Resolve CrossRef year with fallback order across common date fields."""
+    for field in ('published-print', 'published-online', 'issued'):
+        date_parts = item.get(field, {}).get('date-parts', [])
+        if date_parts and isinstance(date_parts[0], list) and date_parts[0]:
+            year = date_parts[0][0]
+            if isinstance(year, int):
+                return year
+            if isinstance(year, str) and year.isdigit():
+                return int(year)
+    return None
+
+
+def infer_domain_from_query(query: str) -> str:
+    """Infer a ranking profile from the query when domain=auto."""
+    normalized = (query or '').lower()
+    tokens = set(re.findall(r'[a-z0-9]+', normalized))
+    if {'protein', 'clinical', 'genome', 'biomedical'} & tokens:
+        return 'biomedical'
+    if {'medicine', 'medical'} & tokens:
+        return 'biomedical'
+    if {'proof', 'theorem', 'theoretical', 'complexity', 'bound', 'bounds'} & tokens:
+        return 'theory'
+    if {'transformer', 'llm', 'diffusion', 'benchmark'} & tokens:
+        return 'fast-moving-ml'
+    if 'language' in tokens and 'model' in tokens:
+        return 'fast-moving-ml'
+    if 'multi' in tokens and 'agent' in tokens:
+        return 'fast-moving-ml'
+    return 'general'
+
+
+def _score_paper(
+    paper: Dict[str, Any],
+    current_year: int,
+    profile: Dict[str, float],
+) -> float:
     citations = _citation_metric(paper)
-    year = _extract_year(paper.get('year'))
+    year = _extract_year(paper.get('year') or paper.get('published'))
     recency_bonus = 0.0
     if year:
-        recency_bonus = max(0.0, 5.0 - (current_year - year) * 0.5)
-    return (citations ** 0.5) + recency_bonus
+        recency_bonus = max(
+            0.0,
+            profile['recency_max'] - (current_year - year) * profile['recency_decay_per_year'],
+        )
+    citation_score = (citations ** 0.5) * profile['citation_weight']
+    recency_score = recency_bonus * profile['recency_weight']
+    oa_bonus = profile['open_access_bonus'] if bool(paper.get('open_access')) else 0.0
+    return citation_score + recency_score + oa_bonus
 
 
 def search_arxiv(query: str, max_results: int = 200) -> List[Dict[str, Any]]:
@@ -228,7 +301,7 @@ def search_crossref(
     params = urllib.parse.urlencode({
         'query': query,
         'rows': min(rows, 50),
-        'select': 'DOI,title,author,abstract,container-title,volume,page,ISSN,URL,published-print'
+        'select': 'DOI,title,author,abstract,container-title,volume,page,ISSN,URL,published-print,published-online,issued'
     })
     url = f"{CROSSREF_API}?{params}"
 
@@ -256,7 +329,7 @@ def search_crossref(
                 'journal': item.get('container-title', [''])[0] if item.get('container-title') else '',
                 'volume': item.get('volume', ''),
                 'pages': item.get('page', ''),
-                'year': item.get('published-print', {}).get('date-parts', [[None]])[0][0],
+                'year': _crossref_year(item),
                 'source': 'crossref'
             }
             papers.append(paper)
@@ -358,12 +431,23 @@ def filter_papers(
 
 def rank_papers(
     papers: List[Dict[str, Any]],
+    query: str,
+    domain: str,
     top_n: Optional[int] = None,
 ) -> List[Dict[str, Any]]:
     current_year = time.gmtime().tm_year
+    effective_domain = infer_domain_from_query(query) if domain == 'auto' else domain
+    profile = DOMAIN_PROFILES.get(effective_domain, DOMAIN_PROFILES['general'])
+
+    scored: List[Dict[str, Any]] = []
+    for paper in papers:
+        paper_copy = dict(paper)
+        paper_copy['rank_score'] = round(_score_paper(paper_copy, current_year, profile), 4)
+        scored.append(paper_copy)
+
     ranked = sorted(
-        papers,
-        key=lambda p: _score_paper(p, current_year),
+        scored,
+        key=lambda p: p['rank_score'],
         reverse=True,
     )
     if top_n and top_n > 0:
@@ -407,6 +491,7 @@ def search_all(
     max_per_source: int,
     since_year: Optional[int],
     open_access_only: bool,
+    domain: str,
     top_n: Optional[int],
 ) -> Dict[str, Any]:
     """Search all sources sequentially with polite pacing and post-processing."""
@@ -442,7 +527,8 @@ def search_all(
 
     unique = deduplicate_papers(all_papers)
     filtered = filter_papers(unique, since_year=since_year, open_access_only=open_access_only)
-    ranked = rank_papers(filtered, top_n=top_n)
+    ranked = rank_papers(filtered, query=query, domain=domain, top_n=top_n)
+    effective_domain = infer_domain_from_query(query) if domain == 'auto' else domain
 
     return {
         'query': query,
@@ -453,6 +539,8 @@ def search_all(
         'filters': {
             'since_year': since_year,
             'open_access_only': open_access_only,
+            'domain': domain,
+            'effective_domain': effective_domain,
             'top_n': top_n,
         },
         'papers': ranked
@@ -481,6 +569,12 @@ def main():
         help='Keep only papers marked open access (best-effort based on source metadata)',
     )
     parser.add_argument(
+        '--domain',
+        choices=['auto', 'general', 'fast-moving-ml', 'theory', 'biomedical'],
+        default='auto',
+        help='Ranking profile: auto-detect from query or choose a fixed domain',
+    )
+    parser.add_argument(
         '--top',
         type=int,
         help='Return only top-N ranked papers after deduplication/filtering',
@@ -496,6 +590,7 @@ def main():
         max_per_source=max(1, min(args.max_per_source, 200)),
         since_year=args.since_year,
         open_access_only=args.open_access_only,
+        domain=args.domain,
         top_n=args.top,
     )
 

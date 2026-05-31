@@ -63,6 +63,37 @@ def _clip_text(text: str, max_chars: int = 240) -> str:
     return compact[:max_chars]
 
 
+def _context_from_span(text: str, start: int, end: int) -> str:
+    """Return nearest sentence-like context around a span."""
+    left = max(text.rfind('.', 0, start), text.rfind('!', 0, start), text.rfind('?', 0, start), text.rfind('\n', 0, start))
+    right_candidates = [
+        idx
+        for idx in (text.find('.', end), text.find('!', end), text.find('?', end), text.find('\n', end))
+        if idx != -1
+    ]
+    right = min(right_candidates) if right_candidates else len(text)
+    context = text[left + 1:right + 1].strip()
+    return context if context else text[max(0, start - 80): min(len(text), end + 80)].strip()
+
+
+def _looks_like_bracket_citation(key: str) -> bool:
+    """Heuristic gate to reduce false positives from generic bracketed text."""
+    candidate = key.strip()
+    if not candidate:
+        return False
+    if candidate.startswith('http://') or candidate.startswith('https://'):
+        return False
+    if candidate.startswith('@'):
+        return True
+    if re.fullmatch(r'\d+(?:[\s,\-]+\d+)*', candidate):
+        return True
+    if re.search(r'(19|20)\d{2}', candidate):
+        return True
+    if re.fullmatch(r'[A-Za-z][A-Za-z0-9:_\-]{2,}', candidate):
+        return True
+    return False
+
+
 def search_semantic_scholar(title: str, api_config: APIConfig) -> Dict[str, Any]:
     """Search Semantic Scholar for a paper by title."""
     params = urllib.parse.urlencode(
@@ -186,29 +217,30 @@ def extract_citations(text: str) -> List[Dict[str, str]]:
     if not text.strip():
         return citations
 
-    sentence_spans = list(re.finditer(r'[^.!?\n]+[.!?]?', text, flags=re.MULTILINE))
-    for span in sentence_spans:
-        sentence = span.group(0).strip()
-        if not sentence:
+    for match in re.finditer(r'\[([^\]]+)\]', text):
+        key = match.group(1).strip()
+        if not key:
             continue
+        if not _looks_like_bracket_citation(key):
+            continue
+        if re.match(r'^\s*\(\s*(?:https?://|www\.|doi:|mailto:)', text[match.end():], flags=re.IGNORECASE):
+            # Markdown link label patterns: [label](url) or [label] (url)
+            continue
+        context = _context_from_span(text, match.start(), match.end())
+        pair = (key, context)
+        if pair in seen_pairs:
+            continue
+        seen_pairs.add(pair)
+        citations.append({'key': key, 'claim': context})
 
-        for match in re.finditer(r'\[([^\]]+)\]', sentence):
-            key = match.group(1).strip()
-            if not key:
-                continue
-            pair = (key, sentence)
-            if pair in seen_pairs:
-                continue
-            seen_pairs.add(pair)
-            citations.append({'key': key, 'claim': sentence})
-
-        for match in re.finditer(r'\(([A-Z][A-Za-z\-]+(?:\s+et al\.)?,\s*(?:19|20)\d{2})\)', sentence):
-            key = match.group(1).strip()
-            pair = (key, sentence)
-            if pair in seen_pairs:
-                continue
-            seen_pairs.add(pair)
-            citations.append({'key': key, 'claim': sentence})
+    for match in re.finditer(r'\(([A-Z][A-Za-z\-]+(?:\s+et al\.)?,\s*(?:19|20)\d{2})\)', text):
+        key = match.group(1).strip()
+        context = _context_from_span(text, match.start(), match.end())
+        pair = (key, context)
+        if pair in seen_pairs:
+            continue
+        seen_pairs.add(pair)
+        citations.append({'key': key, 'claim': context})
 
     return citations
 
