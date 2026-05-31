@@ -1,200 +1,344 @@
 #!/usr/bin/env python3
 """
-Sisyphus Academica — Citation Verifier
-Verifies every citation against 2+ sources.
-Flags hallucinations, misattributions, and unverifiable claims.
+MedAI Academic Writing - Citation Verifier
+Verifies citations against Semantic Scholar and CrossRef.
+Flags likely hallucinations and weakly supported references.
 """
 
 import json
-import urllib.request
-import urllib.parse
+import os
 import re
-from typing import Dict, List, Tuple
-
+import urllib.parse
+import urllib.request
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Any, Dict, List
 
 SEMANTIC_SCHOLAR_API = "https://api.semanticscholar.org/graph/v1/paper"
 CROSSREF_API = "https://api.crossref.org/works"
-ARXIV_API = "http://export.arxiv.org/api/query"
 
 
-def search_semantic_scholar(title: str) -> Dict:
+@dataclass(frozen=True)
+class APIConfig:
+    semantic_scholar_api_key: str
+    crossref_email: str
+
+
+def _load_env_file() -> None:
+    env_path = Path('.env')
+    if not env_path.exists():
+        return
+    for raw_line in env_path.read_text(encoding='utf-8').splitlines():
+        line = raw_line.strip()
+        if not line or line.startswith('#') or '=' not in line:
+            continue
+        key, value = line.split('=', 1)
+        os.environ.setdefault(key.strip(), value.strip().strip('"').strip("'"))
+
+
+def load_api_config() -> APIConfig:
+    _load_env_file()
+    return APIConfig(
+        semantic_scholar_api_key=os.getenv('SEMANTIC_SCHOLAR_API_KEY', '').strip(),
+        crossref_email=os.getenv('CROSSREF_EMAIL', '').strip(),
+    )
+
+
+def _normalize_title(text: str) -> str:
+    return ' '.join(re.sub(r'[^a-z0-9 ]+', ' ', (text or '').lower()).split())
+
+
+def _title_similarity(left: str, right: str) -> float:
+    left_tokens = set(_normalize_title(left).split())
+    right_tokens = set(_normalize_title(right).split())
+    if not left_tokens or not right_tokens:
+        return 0.0
+    overlap = len(left_tokens & right_tokens)
+    union = len(left_tokens | right_tokens)
+    return overlap / union
+
+
+def _clip_text(text: str, max_chars: int = 240) -> str:
+    compact = ' '.join((text or '').split())
+    return compact[:max_chars]
+
+
+def search_semantic_scholar(title: str, api_config: APIConfig) -> Dict[str, Any]:
     """Search Semantic Scholar for a paper by title."""
-    params = urllib.parse.urlencode({
-        'query': title,
-        'limit': 3,
-        'fields': 'title,authors,year,abstract,citationCount,externalIds'
-    })
+    params = urllib.parse.urlencode(
+        {
+            'query': title,
+            'limit': 3,
+            'fields': 'title,authors,year,abstract,citationCount,externalIds',
+        }
+    )
     url = f"{SEMANTIC_SCHOLAR_API}/search?{params}"
-    
+
     try:
-        req = urllib.request.Request(url, headers={'User-Agent': 'SisyphusAcademica/1.0'})
+        headers = {'User-Agent': 'SisyphusAcademica/1.1'}
+        if api_config.semantic_scholar_api_key:
+            headers['x-api-key'] = api_config.semantic_scholar_api_key
+        req = urllib.request.Request(url, headers=headers)
         with urllib.request.urlopen(req, timeout=15) as resp:
             data = json.loads(resp.read().decode('utf-8'))
         return data.get('data', [{}])[0] if data.get('data') else {}
-    except:
+    except Exception:
         return {}
 
 
-def search_crossref(title: str) -> Dict:
+def search_crossref(title: str, api_config: APIConfig) -> Dict[str, Any]:
     """Search CrossRef for a paper by title."""
-    params = urllib.parse.urlencode({
-        'query': title,
-        'rows': 2,
-        'select': 'DOI,title,author,container-title'
-    })
+    params = urllib.parse.urlencode(
+        {
+            'query': title,
+            'rows': 2,
+            'select': 'DOI,title,author,container-title',
+        }
+    )
     url = f"{CROSSREF_API}?{params}"
-    
+
     try:
+        user_agent = 'SisyphusAcademica/1.1'
+        if api_config.crossref_email:
+            user_agent = f"{user_agent} (mailto:{api_config.crossref_email})"
+
         req = urllib.request.Request(
             url,
-            headers={
-                'User-Agent': 'SisyphusAcademica/1.0 (mailto:research@example.com)',
-                'Accept': 'application/json'
-            }
+            headers={'User-Agent': user_agent, 'Accept': 'application/json'},
         )
         with urllib.request.urlopen(req, timeout=15) as resp:
             data = json.loads(resp.read().decode('utf-8'))
         items = data.get('message', {}).get('items', [])
         return items[0] if items else {}
-    except:
+    except Exception:
         return {}
 
 
-def verify_citation(citation_key: str, claim: str) -> Dict:
-    """Verify a single citation by searching multiple sources."""
-    result = {
+def verify_citation(
+    citation_key: str,
+    claim: str,
+    api_config: APIConfig,
+    min_match_score: float,
+    require_two_sources: bool,
+) -> Dict[str, Any]:
+    """Verify one citation using multiple metadata sources."""
+    result: Dict[str, Any] = {
         'citation_key': citation_key,
-        'claim': claim[:200],
+        'claim': _clip_text(claim),
         'semantic_scholar': None,
         'crossref': None,
         'verified': False,
-        'issues': []
+        'match_score': 0.0,
+        'issues': [],
     }
-    
-    # Extract paper title from citation key or claim
-    # In practice, the claim text contains the paper reference
-    
-    # Search Semantic Scholar
-    ss_result = search_semantic_scholar(claim[:100])
+
+    query = _clip_text(claim) if claim.strip() else citation_key.strip()
+    if not query:
+        result['issues'].append('Empty citation query')
+        return result
+
+    ss_result = search_semantic_scholar(query, api_config=api_config)
     if ss_result:
         result['semantic_scholar'] = {
             'title': ss_result.get('title', ''),
             'year': ss_result.get('year', ''),
             'citation_count': ss_result.get('citationCount', 0),
-            'external_ids': ss_result.get('externalIds', {})
+            'external_ids': ss_result.get('externalIds', {}),
         }
-    
-    # Search CrossRef
-    cr_result = search_crossref(claim[:100])
+
+    cr_result = search_crossref(query, api_config=api_config)
     if cr_result:
         result['crossref'] = {
             'doi': cr_result.get('DOI', ''),
             'title': ' '.join(cr_result.get('title', [''])),
-            'container': cr_result.get('container-title', [''])[0] if cr_result.get('container-title') else ''
+            'container': cr_result.get('container-title', [''])[0]
+            if cr_result.get('container-title')
+            else '',
         }
-    
-    # Determine verification status
+
     if result['semantic_scholar'] and result['crossref']:
-        # Both found the paper
-        ss_title = (result['semantic_scholar'].get('title') or '').lower()
-        cr_title = (result['crossref'].get('title') or '').lower()
-        if ss_title and cr_title and (ss_title[:50] == cr_title[:50] or 
-                                       ss_title[:30] in cr_title or cr_title[:30] in ss_title):
+        ss_title = result['semantic_scholar'].get('title', '')
+        cr_title = result['crossref'].get('title', '')
+        score = _title_similarity(ss_title, cr_title)
+        result['match_score'] = round(score, 4)
+        if score >= min_match_score:
             result['verified'] = True
+        else:
+            result['issues'].append(
+                f"Source title mismatch (score={score:.3f} < threshold={min_match_score:.3f})"
+            )
     elif result['semantic_scholar'] or result['crossref']:
-        result['verified'] = True
-        result['issues'].append("Found in only 1 source — weak verification")
+        if require_two_sources:
+            result['issues'].append('Found in only 1 source while strict mode requires 2 sources')
+        else:
+            result['verified'] = True
+            result['issues'].append('Found in only 1 source - weak verification')
     else:
-        result['issues'].append("Paper not found in any source — may be hallucinated")
-    
+        result['issues'].append('Paper not found in any source - may be hallucinated')
+
     return result
 
 
-def verify_citations(findings: Dict) -> Dict:
-    """Verify all citations in a paper findings file."""
-    citations = []
-    
-    # Extract citations from text
-    if 'paper' in findings:
-        text = findings['paper']
-        # Find patterns like [AuthorYear], [1], Smith et al. (2020), etc.
-        citation_patterns = re.findall(r'\[([^\]]+)\]', text)
-        for cp in citation_patterns:
-            citations.append({'key': cp, 'claim': ''})
-    
-    results = []
-    for citation in citations:
-        result = verify_citation(citation['key'], citation['claim'])
-        results.append(result)
-    
-    verified_count = sum(1 for r in results if r['verified'])
-    hallucinated = [r for r in results if not r['verified']]
-    
+def extract_citations(text: str) -> List[Dict[str, str]]:
+    """Extract citation keys and sentence-level context from text."""
+    citations: List[Dict[str, str]] = []
+    seen_pairs = set()
+    if not text.strip():
+        return citations
+
+    sentence_spans = list(re.finditer(r'[^.!?\n]+[.!?]?', text, flags=re.MULTILINE))
+    for span in sentence_spans:
+        sentence = span.group(0).strip()
+        if not sentence:
+            continue
+
+        for match in re.finditer(r'\[([^\]]+)\]', sentence):
+            key = match.group(1).strip()
+            if not key:
+                continue
+            pair = (key, sentence)
+            if pair in seen_pairs:
+                continue
+            seen_pairs.add(pair)
+            citations.append({'key': key, 'claim': sentence})
+
+        for match in re.finditer(r'\(([A-Z][A-Za-z\-]+(?:\s+et al\.)?,\s*(?:19|20)\d{2})\)', sentence):
+            key = match.group(1).strip()
+            pair = (key, sentence)
+            if pair in seen_pairs:
+                continue
+            seen_pairs.add(pair)
+            citations.append({'key': key, 'claim': sentence})
+
+    return citations
+
+
+def findings_to_text(findings: Dict[str, Any]) -> str:
+    """Extract manuscript text from a findings payload."""
+    for key in ('paper', 'text', 'content', 'manuscript'):
+        value = findings.get(key)
+        if isinstance(value, str) and value.strip():
+            return value
+
+    sections = findings.get('sections')
+    if isinstance(sections, list):
+        text_blocks: List[str] = []
+        for section in sections:
+            if isinstance(section, dict):
+                maybe_text = section.get('text') or section.get('content')
+                if isinstance(maybe_text, str):
+                    text_blocks.append(maybe_text)
+        return '\n\n'.join(text_blocks)
+
+    return ''
+
+
+def verify_citations(
+    findings: Dict[str, Any],
+    api_config: APIConfig,
+    min_match_score: float,
+    require_two_sources: bool,
+) -> Dict[str, Any]:
+    """Verify all extracted citations from findings."""
+    text = findings_to_text(findings)
+    citations = extract_citations(text)
+
+    details = [
+        verify_citation(
+            citation['key'],
+            citation['claim'],
+            api_config=api_config,
+            min_match_score=min_match_score,
+            require_two_sources=require_two_sources,
+        )
+        for citation in citations
+    ]
+
+    verified_count = sum(1 for item in details if item['verified'])
+    hallucinated = [item for item in details if not item['verified']]
+
     return {
-        'total_citations': len(results),
+        'total_citations': len(details),
         'verified': verified_count,
         'hallucinated_count': len(hallucinated),
-        'issues_count': sum(len(r.get('issues', [])) for r in results),
-        'hallucinated_citations': [r['citation_key'] for r in hallucinated],
+        'issues_count': sum(len(item.get('issues', [])) for item in details),
+        'hallucinated_citations': [item['citation_key'] for item in hallucinated],
         'blocked': len(hallucinated) > 0,
-        'details': results
+        'min_match_score': min_match_score,
+        'strict_two_source': require_two_sources,
+        'details': details,
     }
 
 
-def generate_bibtex(paper: Dict) -> str:
-    """Generate BibTeX entry from verified paper metadata."""
-    if not paper.get('doi'):
-        return ''
-    
-    doi = paper['doi']
-    author_field = 'Author, A.'
-    title_field = paper.get('title', 'Untitled')
-    year = paper.get('year', 'n.d.')
-    key = f"{author_field.split(',')[0]}{year}"
-    
-    bibtex = f"""@article{{{key},
-  author = {{{author_field}}},
-  title = {{{title_field}}},
-  year = {{{year}}},
-  doi = {{{doi}}}
-}}"""
-    return bibtex
-
-
-def main():
+def main() -> None:
     import argparse
-    parser = argparse.ArgumentParser(description='Sisyphus Academica Citation Verifier')
-    parser.add_argument('--findings', '-f', required=True, help='Findings JSON file')
-    parser.add_argument('--output', '-o', help='Output file')
+
+    parser = argparse.ArgumentParser(description='MedAI Academic Writing Citation Verifier')
+    parser.add_argument('--findings', '-f', help='Findings JSON file')
+    parser.add_argument('--output', '-o', help='Output JSON file')
     parser.add_argument('--citation', '-c', help='Verify a single citation (overrides --findings)')
+    parser.add_argument('--text-file', help='Raw manuscript text/markdown file to scan')
+    parser.add_argument(
+        '--min-match-score',
+        type=float,
+        default=0.45,
+        help='Minimum title similarity score for strict two-source checks (default: 0.45)',
+    )
+    parser.add_argument(
+        '--strict-two-source',
+        action='store_true',
+        help='Require both Semantic Scholar and CrossRef for each citation',
+    )
     args = parser.parse_args()
-    
+
+    api_config = load_api_config()
+    min_match_score = max(0.0, min(args.min_match_score, 1.0))
+
     if args.citation:
-        result = verify_citation('manual', args.citation)
+        result = verify_citation(
+            'manual',
+            args.citation,
+            api_config=api_config,
+            min_match_score=min_match_score,
+            require_two_sources=args.strict_two_source,
+        )
         print(json.dumps(result, indent=2))
         return
-    
-    with open(args.findings) as f:
-        findings = json.load(f)
-    
-    result = verify_citations(findings)
-    
+
+    if not args.findings and not args.text_file:
+        parser.error('Provide --findings or --text-file (or use --citation)')
+
+    findings: Dict[str, Any] = {}
+    if args.findings:
+        with open(args.findings, encoding='utf-8') as infile:
+            findings = json.load(infile)
+    if args.text_file:
+        with open(args.text_file, encoding='utf-8') as infile:
+            findings['paper'] = infile.read()
+
+    result = verify_citations(
+        findings,
+        api_config=api_config,
+        min_match_score=min_match_score,
+        require_two_sources=args.strict_two_source,
+    )
+
     output = json.dumps(result, indent=2)
     if args.output:
-        with open(args.output, 'w') as f:
-            f.write(output)
+        with open(args.output, 'w', encoding='utf-8') as outfile:
+            outfile.write(output)
         print(f"Verification results written to {args.output}")
     else:
         print(output)
-    
+
     if result['blocked']:
-        print(f"\n⚠ BLOCKED: {result['hallucinated_count']} unverifiable citations found")
-        for c in result['hallucinated_citations']:
-            print(f"  - {c}")
-        exit(1)
-    else:
-        print(f"\n✓ All {result['verified']}/{result['total_citations']} citations verified")
-        exit(0)
+        print(f"\n[BLOCKED] {result['hallucinated_count']} unverifiable citations found")
+        for citation in result['hallucinated_citations']:
+            print(f"  - {citation}")
+        raise SystemExit(1)
+
+    print(f"\n[PASS] All {result['verified']}/{result['total_citations']} citations verified")
+    raise SystemExit(0)
 
 
 if __name__ == '__main__':

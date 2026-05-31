@@ -4,7 +4,7 @@
     "research-director": {
       "model": "9router/opencode-free",
       "variant": "think",
-      "description": "Sisyphus Academica — autonomous research paper writing army conductor. Deploys 7+ specialized subagents including 6 novelty engines and 10 adversarial reviewers.",
+      "description": "MedAI Academic Writing — autonomous research paper writing army conductor. Deploys 7+ specialized subagents including 6 novelty engines and 10 adversarial reviewers.",
       "skills": [
         "skill-academic-humanizer"
       ],

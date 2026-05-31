@@ -1,10 +1,12 @@
-# Sisyphus Academica — The Research Paper Writing Army
+# MedAI Academic Writing — The Research Paper Writing Army
+
+Highly inspired by https://github.com/argahv/sisyphus-academica 
 
 **Not a writing assistant. Not a chatbot with a LaTeX plugin. A self-coordinating swarm of 20+ specialized agents that produces publication-ready research papers with genuine novelty, zero hallucinated citations, and absolutely no detectable AI-written patterns.**
 
 ## What Makes This Different
 
-| Capability | Every Other AI Paper Tool | Sisyphus Academica |
+| Capability | Every Other AI Paper Tool | MedAI Academic Writing |
 |---|---|---|
 | Literature review | Searches 10-20 papers | **500+ papers via 5 parallel scouts** |
 | Citation accuracy | ~60% (40% hallucination rate) | **100% verified against 2+ sources** |
@@ -93,6 +95,40 @@ bash install.sh
 python3 tools/literature_client.py "transformer efficiency" --output papers/literature.json
 python3 tools/citation_verifier.py --findings papers/draft.json --output papers/verified.json
 ```
+
+## Tooling Upgrades
+
+### Literature Client
+
+The literature client now supports stronger deduplication, environment-aware API headers,
+paper ranking, filtering, and markdown report export.
+
+```bash
+# Top-50 recent papers from 2021+, plus markdown summary
+python3 tools/literature_client.py "retrieval augmented generation" \
+      --max-per-source 120 \
+      --since-year 2021 \
+      --top 50 \
+      --output out/papers/literature.json \
+      --report-md out/papers/literature-report.md
+```
+
+### Citation Verifier
+
+The verifier now extracts citations from manuscript text context (not empty claims),
+supports strict two-source validation, and exposes configurable title match thresholds.
+
+```bash
+# Verify markdown manuscript with strict 2-source checks
+python3 tools/citation_verifier.py \
+      --text-file out/papers/draft.md \
+      --strict-two-source \
+      --min-match-score 0.50 \
+      --output out/papers/citation-audit.json
+```
+
+Use `.env` values from `.env.example` for `SEMANTIC_SCHOLAR_API_KEY` and
+`CROSSREF_EMAIL` to improve API reliability and rate limits.
 
 ## Directory Structure
 

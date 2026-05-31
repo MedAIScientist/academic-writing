@@ -1,5 +1,5 @@
 #!/bin/bash
-# Sisyphus Academica — Quick Install
+# MedAI Academic Writing — Quick Install
 # Symlinks agents into OpenCode, installs dependencies
 
 set -euo pipefail
@@ -9,7 +9,7 @@ OPENCODE_AGENTS="$HOME/.config/opencode/agents"
 OPENCODE_SKILLS="$HOME/.config/opencode/skills"
 
 echo "╔═══════════════════════════════════════════════════╗"
-echo "║     Sisyphus Academica — Installation             ║"
+echo "║     MedAI Academic Writing — Installation             ║"
 echo "╚═══════════════════════════════════════════════════╝"
 echo ""
 
@@ -54,7 +54,7 @@ mkdir -p "$SISYPHUS_DIR/out/figures"
 
 echo ""
 echo "╔═══════════════════════════════════════════════════╗"
-echo "║     Sisyphus Academica — INSTALLED                ║"
+echo "║     MedAI Academic Writing — INSTALLED                ║"
 echo "║                                                   ║"
 echo "║  Next steps:                                      ║"
 echo "║  1. Provide a voice sample in data/voice-profile   ║"
