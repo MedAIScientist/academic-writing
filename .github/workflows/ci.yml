@@ -1,0 +1,49 @@
+name: CI
+
+on:
+  push:
+    branches: [main, dev]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Lint
+        run: |
+          pip install flake8
+          flake8 tools/ --max-line-length=100 --ignore=E501,W291
+
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.10", "3.11", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install deps
+        run: pip install pytest
+      - name: Run tests
+        run: python -m pytest tests/ -v
+
+  check-structure:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify required files exist
+        run: |
+          for f in LICENSE README.md .env.example install.sh config/agent-config.json orchestrator/research-director.md; do
+            test -f "$f" || { echo "MISSING: $f"; exit 1; }
+          done
+          for d in subagents novelty-engines reviewers templates tools; do
+            test -d "$d" || { echo "MISSING dir: $d"; exit 1; }
+          done
+          echo "All required files present."

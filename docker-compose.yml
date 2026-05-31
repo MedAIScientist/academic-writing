@@ -1,0 +1,36 @@
+version: "3.9"
+
+services:
+  # LaTeX compilation environment for paper formatting
+  latex:
+    image: texlive/texlive:latest
+    container_name: sisyphus-latex
+    platform: linux/amd64
+    working_dir: /workspace
+    volumes:
+      - ./out:/workspace/out
+      - ./templates:/workspace/templates
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        echo "LaTeX environment ready. Usage:"
+        echo "  docker compose run latex pdflatex out/papers/paper.tex"
+        echo "  docker compose run latex bibtex out/papers/paper"
+        tail -f /dev/null
+    profiles: ["latex"]
+    restart: "no"
+
+  # Full development environment
+  dev:
+    image: python:3.11-slim
+    container_name: sisyphus-dev
+    working_dir /workspace
+    volumes:
+      - .:/workspace
+      - ~/.config/opencode:/root/.config/opencode
+    environment:
+      - PYTHONUNBUFFERED=1
+    entrypoint: ["/bin/bash"]
+    profiles: ["dev"]
+    stdin_open: true
+    tty: true
