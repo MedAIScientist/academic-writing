@@ -106,7 +106,7 @@ def search_semantic_scholar(title: str, api_config: APIConfig) -> Dict[str, Any]
     url = f"{SEMANTIC_SCHOLAR_API}/search?{params}"
 
     try:
-        headers = {'User-Agent': 'SisyphusAcademica/1.1'}
+        headers = {'User-Agent': 'medai/1.1'}
         if api_config.semantic_scholar_api_key:
             headers['x-api-key'] = api_config.semantic_scholar_api_key
         req = urllib.request.Request(url, headers=headers)
@@ -129,7 +129,7 @@ def search_crossref(title: str, api_config: APIConfig) -> Dict[str, Any]:
     url = f"{CROSSREF_API}?{params}"
 
     try:
-        user_agent = 'SisyphusAcademica/1.1'
+        user_agent = 'medai/1.1'
         if api_config.crossref_email:
             user_agent = f"{user_agent} (mailto:{api_config.crossref_email})"
 

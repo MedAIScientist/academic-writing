@@ -6,7 +6,7 @@ permission:
   read:
     "*": allow
   write:
-    /root/sisyphus-academica/out/papers/*: allow
+    ./out/papers/*: allow
   bash: deny
   webfetch: allow
   task: deny

@@ -15,10 +15,10 @@ permission:
     "*.env": ask
     "*.env.*": ask
   external_directory:
-    /root/sisyphus-academica/*: allow
-    /root/.config/opencode/skills/humanizer/*: allow
-    /root/.config/opencode/skills/*: allow
-    /root/.local/share/opencode/tool-output/*: allow
+    ./*: allow
+    ~/.config/opencode/skills/humanizer/*: allow
+    ~/.config/opencode/skills/*: allow
+    ~/.local/share/opencode/tool-output/*: allow
     /tmp/opencode/*: allow
   call_omo_agent: deny
 ---

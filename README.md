@@ -1,6 +1,8 @@
 # MedAI Academic Writing — The Research Paper Writing Army
 
-Highly inspired by https://github.com/argahv/sisyphus-academica 
+Highly inspired by https://github.com/argahv/MedAI 
+
+Includes integrated support for the ARS suite from https://github.com/Imbad0202/academic-research-skills
 
 **Not a writing assistant. Not a chatbot with a LaTeX plugin. A self-coordinating swarm of 20+ specialized agents that produces publication-ready research papers with genuine novelty, zero hallucinated citations, and absolutely no detectable AI-written patterns.**
 
@@ -84,7 +86,6 @@ All 10 must pass before the paper proceeds to formatting.
 
 ```bash
 # Install
-cd /root/sisyphus-academica
 bash install.sh
 
 # Start a paper
@@ -96,22 +97,49 @@ python3 tools/literature_client.py "transformer efficiency" --output papers/lite
 python3 tools/citation_verifier.py --findings papers/draft.json --output papers/verified.json
 ```
 
+## Integrated External Skills (ARS)
+
+This project now installs and wires in the four ARS research skills during setup:
+- `deep-research`
+- `academic-paper`
+- `academic-paper-reviewer`
+- `academic-pipeline`
+
+Integration details:
+- `install.sh` clones `Imbad0202/academic-research-skills` into `~/.config/opencode/skills/academic-research-skills`
+- It symlinks each ARS skill folder into `~/.config/opencode/skills/` so discovery follows `<install-root>/<skill-name>/SKILL.md`
+- `config/agent-config.json` enables these skills on `research-director`
+
+Example intents to trigger ARS workflows through `research-director`:
+- "Run a deep literature synthesis on [topic]"
+- "Draft a full academic paper from this outline"
+- "Act as peer reviewers and produce revision guidance"
+- "Run the full research-to-paper pipeline with checkpoints"
+
 ## Tooling Upgrades
 
 ### Literature Client
 
 The literature client now supports stronger deduplication, environment-aware API headers,
-paper ranking, filtering, and markdown report export.
+paper ranking, domain-aware scoring, filtering, and markdown report export.
 
 ```bash
 # Top-50 recent papers from 2021+, plus markdown summary
 python3 tools/literature_client.py "retrieval augmented generation" \
       --max-per-source 120 \
       --since-year 2021 \
+      --domain fast-moving-ml \
       --top 50 \
       --output out/papers/literature.json \
       --report-md out/papers/literature-report.md
 ```
+
+Domain profiles:
+- `auto` (query-based inference)
+- `general`
+- `fast-moving-ml`
+- `theory`
+- `biomedical`
 
 ### Citation Verifier
 
@@ -127,13 +155,39 @@ python3 tools/citation_verifier.py \
       --output out/papers/citation-audit.json
 ```
 
+### One-Command Pipeline
+
+Run literature retrieval, markdown report generation, and citation verification in one command:
+
+```bash
+python3 tools/paper_pipeline.py "transformer efficiency" \
+      --manuscript out/papers/draft.md \
+      --since-year 2021 \
+      --domain auto \
+      --top 50 \
+      --strict-two-source \
+      --out-dir out/papers
+```
+
+Generated artifacts:
+- `out/papers/literature.json`
+- `out/papers/literature-report.md`
+- `out/papers/citation-audit.json`
+- `out/papers/pipeline-summary.md`
+
+## Tests
+
+```bash
+python3 -m unittest discover -s tests -p "test_*.py"
+```
+
 Use `.env` values from `.env.example` for `SEMANTIC_SCHOLAR_API_KEY` and
 `CROSSREF_EMAIL` to improve API reliability and rate limits.
 
 ## Directory Structure
 
 ```
-sisyphus-academica/
+MedAI/
 ├── orchestrator/          # Research Director agent
 ├── subagents/             # Core writing pipeline agents
 ├── novelty-engines/       # 6 novelty generation agents

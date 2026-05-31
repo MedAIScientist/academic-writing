@@ -7,7 +7,7 @@ permission:
   read:
     "*": allow
   write:
-    /root/sisyphus-academica/out/papers/*: allow
+    ./out/papers/*: allow
   webfetch: allow
   task: deny
   call_omo_agent: deny
