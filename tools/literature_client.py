@@ -11,6 +11,7 @@ import time
 import urllib.request
 import urllib.parse
 import xml.etree.ElementTree as ET
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import List, Dict, Optional
 
 
