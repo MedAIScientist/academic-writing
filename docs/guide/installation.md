@@ -39,133 +39,123 @@ If you are an LLM Agent helping a user install Sisyphus Academica, welcome. Foll
 
 ---
 
-### Step 0: Interview the user
+### Step 0: Subscription interview (omo-style)
 
-Ask these questions in order. Each answer affects config decisions downstream.
+Ask these questions in order. Each answer maps to a specific config flag or action. Collect ALL answers first, then proceed to installation.
 
-#### Q1: Do you already have OpenCode installed?
+#### Q1: Platform — which coding agent do you use?
 
-```bash
-if command -v opencode &> /dev/null; then
-    echo "OpenCode $(opencode --version) is installed"
-else
-    echo "Not installed"
-fi
-```
+> "Which coding agent do you want to install Sisyphus Academica for?
+> 1. OpenCode — terminal AI coding agent (recommended)
+> 2. Claude Code
+> 3. Cursor
+> 4. Codex CLI
+> 5. Manual (CLI tools only)"
 
-| If they say... | Then... |
-|----------------|---------|
-| **Yes, I have OpenCode** | Proceed to Q2. Agents install via `install.sh` into `~/.config/opencode/agents/`. |
-| **No, I don't** | Ask which platform they use instead: Claude Code, Cursor, Codex CLI, or VS Code Copilot. Map to the support level below. Offer to install OpenCode if they want full support (ref: https://opencode.ai/docs). |
+Map their answer:
 
-Platform support levels:
+| User says | Flag | Then |
+|-----------|------|------|
+| OpenCode | `platform=opencode` | Full support — 25 agents deploy via `install.sh` |
+| Claude Code | `platform=claude-code` | Manual agent file placement |
+| Cursor | `platform=cursor` | Manual copy to `.cursor/rules/` |
+| Codex CLI | `platform=codex` | Python CLI tools only (no agent orchestration) |
+| Manual | `platform=manual` | CLI tools only |
 
-| Platform | Agent Deployment | Python CLI Tools | PDF Output |
-|----------|-----------------|-----------------|------------|
-| **OpenCode** (recommended) | Full — all 25 agents via `install.sh` | ✅ | ✅ via LaTeX |
-| **Claude Code** | Manual — copy agent files to project | ✅ | ✅ via LaTeX |
-| **Cursor** | Manual — copy to `.cursor/rules/` | ✅ | ✅ via LaTeX |
-| **Codex CLI** | Not supported (no agent orchestration) | ✅ standalone | ✅ via LaTeX |
-| **VS Code Copilot** | Not supported | ✅ standalone | ✅ via LaTeX |
+If the user picked anything other than OpenCode, strongly recommend installing OpenCode:
 
-> **Why OpenCode is recommended:** Sisyphus Academica's 25 agents are OpenCode-native — they use the `task()` delegation system, `permission` frontmatter, and `external_directory` access controls. Other platforms offer partial support at best.
+> ⚠ Sisyphus Academica's 25 agents are OpenCode-native — they use the `task()` delegation system, `permission` frontmatter, and `external_directory` access controls. Other platforms offer partial support at best.
 
 #### Q2: Do you already have oh-my-openagent installed?
 
-```bash
-ls ~/.config/opencode/oh-my-openagent.json 2>/dev/null && echo "Yes" || echo "No"
-```
+Check: `ls ~/.config/opencode/oh-my-openagent.jsonc 2>/dev/null && echo "Yes" || echo "No"`
 
-| If they say... | Then... |
-|----------------|---------|
-| **Yes, I have omo** | Sisyphus Academica agents integrate into omo's existing agent ecosystem. Deploy via `install.sh` — agents appear alongside omo's 11 agents. Use omo's model config pattern (`oh-my-openagent.jsonc`). |
-| **No, I don't** | Install as standalone OpenCode agents. Use sisyphus-academica's own `config/agent-config.json` for model config. |
+| User says | Then |
+|-----------|------|
+| **Yes** | Agents integrate into omo's ecosystem. Use omo's `oh-my-openagent.jsonc` model config. |
+| **No** | Standalone install. Use sisyphus-academica's `config/agent-config.json`. |
 
-#### Q3: Which LLM provider(s) do you have?
+#### Q3: Do you have a Claude subscription?
 
-This is the most important question — it determines the model config for all 17 configurable agents.
+> "Do you have a Claude Pro or Max subscription?"
 
-> "Which LLM provider(s) do you have access to?
-> 1. Anthropic (Claude) — Claude Opus 4+ recommended
-> 2. OpenAI (GPT) — GPT-4o or GPT-5+
-> 3. Both
-> 4. 9router (OpenCode's default gateway)
-> 5. Ollama or local models
-> 6. GitHub Copilot (as provider proxy)
-> 7. OpenRouter or other API gateway"
+| User says | Flag | Then |
+|-----------|------|------|
+| **Yes, with Max (20x)** | `claude=max20` | All agents can use Claude at full capacity |
+| **Yes, Pro/Basic** | `claude=yes` | Writers and novelty engines set to Claude Sonnet 4 |
+| **No** | `claude=no` | Fall back to GPT or 9router default |
+
+**MUST STRONGLY WARN, WHEN USER SAID THEY DON'T HAVE CLAUDE SUBSCRIPTION:** Sisyphus Academica's writing and novelty engines work best with Claude models. The Heretic, Contrarian, and Writer agents are prompt-tuned for Claude-family instruction-following. Without Claude, paper quality will noticeably degrade and may require 2-3x more revision rounds.
+
+#### Q4: Do you have an OpenAI/ChatGPT subscription?
+
+> "Do you have an OpenAI or ChatGPT Plus subscription?"
+
+| User says | Flag | Then |
+|-----------|------|------|
+| **Yes** | `openai=yes` | Verifier and Literature Scout use GPT-4o for structured tasks |
+| **No** | `openai=no` | Use Claude or 9router for all agents |
+
+Derive combined provider from Q3+Q4:
+
+| Claude | OpenAI | Resulting provider |
+|--------|--------|-------------------|
+| Yes | Yes | **both** — Claude for writing/novelty, GPT for verification/search |
+| Yes | No | **anthropic** — Claude for all agents |
+| No | Yes | **openai** — GPT for all agents (warn about quality) |
+| No | No | **9router** — default gateway (free-tier models) |
 
 Model recommendation by agent role:
 
-| Agent Role | Recommended Model | Budget Alternative |
-|------------|------------------|-------------------|
-| **Research Director** (orchestrator) | Claude Opus 4+ or GPT-5+ | Claude Sonnet 4+ |
-| **Writer** (paper sections) | Claude Sonnet 4+ | GPT-4o |
-| **Heretic** (novelty engine) | Claude Opus 4+ | GPT-5+ |
-| **Contrarian** (novelty engine) | Claude Sonnet 4+ | GPT-4o |
-| **Verifier** (citation audit) | GPT-4o+ | Claude Haiku |
-| **Literature Scout** | GPT-4o or Claude Haiku | Any fast model |
-| **Reviewers** (10 personas) | Claude Sonnet 4+ | GPT-4o |
-| **Formatter** (LaTeX) | Any cheap model | GPT-4o mini |
+| Agent Role | Best | Budget Alt |
+|------------|------|------------|
+| Research Director | Claude Opus 4+ | Claude Sonnet 4+ |
+| Writer | Claude Sonnet 4+ | GPT-4o |
+| Heretic (novelty) | Claude Opus 4+ | GPT-5+ |
+| Verifier (citation) | GPT-4o+ | Claude Haiku |
+| Literature Scout | GPT-4o or Haiku | Any fast model |
+| 10 Reviewers | Claude Sonnet 4+ | GPT-4o |
 
-Provider mapping:
+**Optimal split for "both" users:** Writers + Novelty Engines → Claude. Verifier + Literature Scout → GPT. Formatter → any cheap model.
 
-| User says | Set in config |
-|-----------|--------------|
-| Anthropic only | `"model": "anthropic/claude-opus-4"` for writer/heretic, `"anthropic/claude-sonnet-4"` for scout/reviewers |
-| OpenAI only | `"model": "openai/gpt-5.5"` for director/writer, `"openai/gpt-4o"` for scout/formatter |
-| Both | Best of both: Claude for writing/novelty, GPT for verification/search |
-| 9router | Default: `"model": "9router/opencode-free"` (already set) |
-| Ollama/local | `"model": "ollama/llama-3.3-70b"` or similar. Note: smaller models significantly degrade paper quality. |
+#### Q5: Do you have a Semantic Scholar API key?
 
-**For "Both" users — optimal split:**
-- Research Director → Anthropic Claude (best orchestration)
-- Writer → Anthropic Claude (best prose quality)
-- Heretic / Contrarian → Anthropic Claude (best novel reasoning)
-- Verifier → OpenAI GPT (best structured verification)
-- Literature Scout → OpenAI GPT or fast Claude
-- Reviewers (10) → Claude Sonnet (most nuanced)
-- Formatter → any cheap model
+Check: Free key at https://www.semanticscholar.org/product/api — without it: 100 req/min, with it: 1000 req/min.
 
-**Must strongly warn, when user said they don't have Claude subscription: Sisyphus Academica's writing and novelty engines work best with Claude models. GPT models can produce good results but may require more revision rounds. Local models under 70B parameters will significantly degrade paper quality.**
+| User says | Then |
+|-----------|------|
+| **Yes, here's my key** | Write `SEMANTIC_SCHOLAR_API_KEY=<key>` to `.env` |
+| **No, get one** | Open browser to signup page. Wait for key. Write to `.env`. |
+| **Skip** | Proceed with 100 req/min rate limit. Literature search still works but is slower. |
 
-#### Q4: Do you have a Semantic Scholar API key?
+#### Q6: Do you use LaTeX for PDF output?
 
-```bash
-# Free API key at https://www.semanticscholar.org/product/api
-# Without it: 100 requests/min rate limit
-# With it: 1000 requests/min
-```
+| User says | Then |
+|-----------|------|
+| **Yes, I have LaTeX installed** | Verify `pdflatex` works. |
+| **Yes, via Docker** | Configure `docker compose --profile latex up -d`. |
+| **No** | Papers output as `.tex` only. User compiles elsewhere (Overleaf, etc.). |
 
-| If they say... | Then... |
-|----------------|---------|
-| **Yes** | Set `SEMANTIC_SCHOLAR_API_KEY` in `.env` |
-| **No** | Offer to help get one (free, 2-minute signup). If they skip, proceed without — literature search is rate-limited but functional. |
+#### Q7: Do you have a writing sample for voice calibration?
 
-#### Q5: Do you use LaTeX for paper formatting?
-
-| If they say... | Then... |
-|----------------|---------|
-| **Yes** | Check `pdflatex` is available. If not, offer to install TeX Live or configure Docker. |
-| **No, I use Word/Overleaf/other** | Papers output as `.tex` only. Skip LaTeX verification. They can compile elsewhere. |
-
-#### Q6: Do you have a writing sample for voice calibration?
-
-| If they say... | Then... |
-|----------------|---------|
-| **Yes** | Ask them to paste 2-3 paragraphs of their published writing. Save to `data/voice-profile/sample.txt`. This calibrates all writer agents to match their voice. |
-| **No** | Proceed with neutral academic tone. Voice calibration is optional but recommended for review-level quality. |
+| User says | Then |
+|-----------|------|
+| **Yes** | Ask for 2-3 paragraphs of published writing. Save to `data/voice-profile/sample.txt`. |
+| **No** | Proceed with neutral academic tone. Voice calibration is optional but recommended. |
 
 #### Summary of answers
 
 After all questions, confirm with the user:
 
 > "Here's what I'll configure:
-> - Platform: [OpenCode / Other]
-> - omo integration: [Yes / No]
-> - LLM provider: [Anthropic / OpenAI / Both / Other]
-> - Semantic Scholar API: [Configured / Skipped]
-> - LaTeX: [Checked / Skipped]
-> - Voice sample: [Provided / Skipped]
+> - Platform: [opencode / manual]
+> - omo integration: [yes / no]
+> - Claude: [max20 / yes / no]
+> - OpenAI: [yes / no]
+> - Provider: [anthropic / openai / both / 9router]
+> - Semantic Scholar: [configured / skipped]
+> - LaTeX: [yes / docker / no]
+> - Voice sample: [provided / skipped]
 >
 > Shall I proceed?"
 
