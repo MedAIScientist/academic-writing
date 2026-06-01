@@ -15,15 +15,35 @@ setup-*.log
 __pycache__/
 *.pyc
 *.pyo
+.pytest_cache/
+
+# Build artifacts
+*.egg-info/
+dist/
+build/
 
 # LaTeX artifacts
 *.aux
 *.bbl
 *.blg
-*.log
 *.out
 *.fdb_latexmk
 *.synctex.gz
 *.fls
 *.run.xml
 *.bcf
+*.toc
+*.lof
+*.lot
+*.ind
+*.idx
+*.ilg
+
+# IDE / editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+

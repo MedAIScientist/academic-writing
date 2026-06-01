@@ -58,7 +58,7 @@ def _title_similarity(left: str, right: str) -> float:
     return overlap / union
 
 
-def _clip_text(text: str, max_chars: int = 240) -> str:
+def _clip_text(text: str, max_chars: int = 200) -> str:
     compact = ' '.join((text or '').split())
     return compact[:max_chars]
 
@@ -148,9 +148,9 @@ def search_crossref(title: str, api_config: APIConfig) -> Dict[str, Any]:
 def verify_citation(
     citation_key: str,
     claim: str,
-    api_config: APIConfig,
-    min_match_score: float,
-    require_two_sources: bool,
+    api_config: APIConfig | None = None,
+    min_match_score: float = 0.45,
+    require_two_sources: bool = True,
 ) -> Dict[str, Any]:
     """Verify one citation using multiple metadata sources."""
     result: Dict[str, Any] = {
@@ -162,6 +162,9 @@ def verify_citation(
         'match_score': 0.0,
         'issues': [],
     }
+
+    if api_config is None:
+        api_config = load_api_config()
 
     query = _clip_text(claim) if claim.strip() else citation_key.strip()
     if not query:
@@ -211,9 +214,20 @@ def verify_citation(
 
 
 def extract_citations(text: str) -> List[Dict[str, str]]:
-    """Extract citation keys and sentence-level context from text."""
+    """Extract citation keys and sentence-level context from text.
+
+    Supports bracket format, inline Author (Year), and parenthetical (Author, Year).
+    """
     citations: List[Dict[str, str]] = []
-    seen_pairs = set()
+    seen_keys = set()
+
+    def add_citation(key: str, context: str) -> None:
+        normalized = key.strip()
+        if not normalized or normalized in seen_keys:
+            return
+        seen_keys.add(normalized)
+        citations.append({'key': normalized, 'claim': context})
+
     if not text.strip():
         return citations
 
@@ -227,20 +241,17 @@ def extract_citations(text: str) -> List[Dict[str, str]]:
             # Markdown link label patterns: [label](url) or [label] (url)
             continue
         context = _context_from_span(text, match.start(), match.end())
-        pair = (key, context)
-        if pair in seen_pairs:
-            continue
-        seen_pairs.add(pair)
-        citations.append({'key': key, 'claim': context})
+        add_citation(key, context)
 
-    for match in re.finditer(r'\(([A-Z][A-Za-z\-]+(?:\s+et al\.)?,\s*(?:19|20)\d{2})\)', text):
-        key = match.group(1).strip()
+    for match in re.finditer(r'([A-Z][A-Za-z\-]+(?:\s+et\s+al\.?)?)\s*\((\d{4})\)', text):
+        key = f"{match.group(1).strip()}{match.group(2)}"
         context = _context_from_span(text, match.start(), match.end())
-        pair = (key, context)
-        if pair in seen_pairs:
-            continue
-        seen_pairs.add(pair)
-        citations.append({'key': key, 'claim': context})
+        add_citation(key, context)
+
+    for match in re.finditer(r'\(([A-Z][A-Za-z\-]+(?:\s+et\s+al\.?)?),\s*((?:19|20)\d{2})\)', text):
+        key = f"{match.group(1).strip()}{match.group(2)}"
+        context = _context_from_span(text, match.start(), match.end())
+        add_citation(key, context)
 
     return citations
 
@@ -267,11 +278,14 @@ def findings_to_text(findings: Dict[str, Any]) -> str:
 
 def verify_citations(
     findings: Dict[str, Any],
-    api_config: APIConfig,
-    min_match_score: float,
-    require_two_sources: bool,
+    api_config: APIConfig | None = None,
+    min_match_score: float = 0.45,
+    require_two_sources: bool = True,
 ) -> Dict[str, Any]:
     """Verify all extracted citations from findings."""
+    if api_config is None:
+        api_config = load_api_config()
+
     text = findings_to_text(findings)
     citations = extract_citations(text)
 
@@ -302,6 +316,27 @@ def verify_citations(
     }
 
 
+def generate_bibtex(paper: Dict[str, Any]) -> str:
+    """Generate a minimal BibTeX entry from a paper dict.
+
+    Expected fields: doi (required), title, year.
+    """
+    doi = (paper.get('doi') or '').strip()
+    if not doi:
+        return ''
+
+    title = (paper.get('title') or 'Untitled').replace('{', '').replace('}', '')
+    year = paper.get('year') or 'n.d.'
+    key_seed = re.sub(r'[^a-z0-9]+', '', doi.lower())[:20] or 'citation'
+    return (
+        f"@article{{{key_seed},\n"
+        f"  title={{{title}}},\n"
+        f"  year={{{year}}},\n"
+        f"  doi={{{doi}}}\n"
+        f"}}"
+    )
+
+
 def main() -> None:
     import argparse
 
@@ -319,7 +354,12 @@ def main() -> None:
     parser.add_argument(
         '--strict-two-source',
         action='store_true',
-        help='Require both Semantic Scholar and CrossRef for each citation',
+        help='Require both Semantic Scholar and CrossRef for each citation (default behavior)',
+    )
+    parser.add_argument(
+        '--allow-single-source',
+        action='store_true',
+        help='Allow verification with only one source (less strict)',
     )
     args = parser.parse_args()
 
@@ -332,7 +372,7 @@ def main() -> None:
             args.citation,
             api_config=api_config,
             min_match_score=min_match_score,
-            require_two_sources=args.strict_two_source,
+            require_two_sources=(args.strict_two_source or not args.allow_single_source),
         )
         print(json.dumps(result, indent=2))
         return
@@ -352,7 +392,7 @@ def main() -> None:
         findings,
         api_config=api_config,
         min_match_score=min_match_score,
-        require_two_sources=args.strict_two_source,
+        require_two_sources=(args.strict_two_source or not args.allow_single_source),
     )
 
     output = json.dumps(result, indent=2)

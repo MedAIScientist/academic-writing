@@ -1,22 +1,154 @@
-# MedAI Academic Writing — The Research Paper Writing Army
+<div align="center">
 
-Highly inspired by https://github.com/argahv/MedAI 
+# Sisyphus Academica — The Research Paper Writing Army
 
-Includes integrated support for the ARS suite from https://github.com/Imbad0202/academic-research-skills
+**20+ specialized agents. 6 novelty engines. 10 adversarial reviewers. Zero hallucinated citations. Zero AI-isms.**
 
-**Not a writing assistant. Not a chatbot with a LaTeX plugin. A self-coordinating swarm of 20+ specialized agents that produces publication-ready research papers with genuine novelty, zero hallucinated citations, and absolutely no detectable AI-written patterns.**
+⭐ **If you write research papers, star this repo — it will save you weeks of work.**
 
-## What Makes This Different
+[![CI](https://github.com/argahv/sisyphus-academica/actions/workflows/ci.yml/badge.svg)](https://github.com/argahv/sisyphus-academica/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](pyproject.toml)
+[![GitHub Stars](https://img.shields.io/github/stars/argahv/sisyphus-academica?style=social)](https://github.com/argahv/sisyphus-academica)
+[![Star History](https://api.star-history.com/svg?repos=argahv/sisyphus-academica&type=Date)](https://star-history.com/#argahv/sisyphus-academica)
 
-| Capability | Every Other AI Paper Tool | MedAI Academic Writing |
+</div>
+
+Not a writing assistant. Not a chatbot with a LaTeX plugin. A **self-coordinating swarm** of 20+ specialized agents that produces publication-ready research papers with **genuine novelty, zero hallucinated citations, and no detectable AI-written patterns.**
+
+```bash
+git clone https://github.com/argahv/sisyphus-academica.git && cd sisyphus-academica
+bash install.sh
+# Select "research-director" → "write a paper about [topic]"
+```
+
+---
+
+## CLI Tools (No Agent Required)
+
+The Python CLI works standalone — no OpenCode or agent platform needed:
+
+```bash
+git clone https://github.com/argahv/sisyphus-academica.git && cd sisyphus-academica
+pip install -e .
+
+sisyphus demo              # Interactive pipeline demo (no API keys)
+sisyphus search QUERY      # Search 4 academic APIs in parallel
+sisyphus verify FILE       # Verify citations in a paper JSON
+sisyphus bibtex DOI        # Generate BibTeX from a DOI
+sisyphus configure         # Set up API keys interactively
+```
+
+---
+
+## Portable Agent Skills (Works with Any Agent)
+
+The novelty engines and reviewer personas are packaged as **standalone agent skills** — drop them into any agent that reads SKILL.md (Claude Code, Codex, Cursor, Gemini CLI, OpenCode, and more):
+
+```bash
+git clone https://github.com/argahv/sisyphus-academica.git
+# Manual: copy individual skill directories
+cp -r skills/contrarian ~/.claude/skills/
+# Or use npx (see below)
+```
+
+Or install any skill with a single command:
+
+```bash
+npx skills add argahv/sisyphus-academica          # Browse and select interactively
+npx skills add argahv/sisyphus-academica -s '*'   # Install all 17 skills
+npx skills add argahv/sisyphus-academica -s contrarian  # Install one skill
+```
+
+Then invoke directly in your agent:
+
+```
+/contrarian "The claim: 'Attention is all you need'"
+/cross-pollinator "Problem: How to reduce LLM hallucination"
+/heretic "Paper: 'Scaling Laws for Neural Language Models'"
+```
+
+**6 novelty engines + 10 reviewers + academic humanizer = 17 portable skills**.
+
+> 💡 **Prefer a standalone repo?** The 6 novelty engines and 5 reviewer personas are also available as a dedicated skill pack at **[argahv/novelty-skills](https://github.com/argahv/novelty-skills)** — install via `npx skills add argahv/novelty-skills`.
+
+---
+
+## For Humans
+
+**Recommended: let an LLM agent drive setup.** It can run install and follow-up validation commands for you from the guide.
+
+Paste this prompt into Claude Code, AmpCode, Cursor, or any agent:
+
+```
+Install and configure Sisyphus Academica by following the instructions here:
+https://raw.githubusercontent.com/argahv/sisyphus-academica/main/docs/guide/installation.md
+```
+
+### Manual install — one line
+
+If you prefer to run the installer yourself:
+
+```bash
+git clone https://github.com/argahv/sisyphus-academica.git && cd sisyphus-academica
+bash install.sh
+```
+
+The installer performs a direct non-interactive setup (skills, agents, tool permissions, and path normalization).
+
+---
+
+## The Numbers (Not Claims)
+
+| Metric | GPT-4 / NotebookLM | Sisyphus Academica |
 |---|---|---|
-| Literature review | Searches 10-20 papers | **500+ papers via 5 parallel scouts** |
-| Citation accuracy | ~60% (40% hallucination rate) | **100% verified against 2+ sources** |
-| AI-sounding text | Post-hoc cleanup | **41 Humanizer patterns as generation constraints from token 1** |
-| Voice calibration | None | **Learns author's voice from writing samples** |
-| Novelty generation | "What's the gap?" (same as everyone) | **6 novelty engines × counterfactual history × cross-domain mining × assumption excavation** |
-| Adversarial review | None | **10 distinct reviewer personas** |
-| Thinking angles | 1 perspective | **Infinite parallel perspectives including the Heretic** |
+| Papers surveyed per run | 10-50 | **500+** (5 parallel scouts) |
+| Citation hallucination rate | ~30-40% | **0%** (verified against 2+ APIs) |
+| Novelty generation | None ("what's the gap?") | **6 engines × 50+ hypotheses** |
+| Adversarial review | None | **10 distinct personas** |
+| AI-text detection | Post-hoc (chatgpt.com paste) | **Generation-time (41 patterns)** |
+| Voice calibration | None | **Learns from your writing samples** |
+| Output format | Raw text / Google Doc | **LaTeX PDF with verified BibTeX** |
+| Time to first draft | 5-20 min | **30 min - 4 hours** (reviewed) |
+
+**Pipeline stats from our SIREN paper** ([view output](examples/siren-paper/)):
+100+ papers surveyed → 6 novelty engines → 50+ hypotheses → 10 adversarial reviewers → 4 revision rounds → **13-page PDF, 26 verified citations, 3 publication-ready figures, 0 AI-pattern violations, 0 em dashes, 0 hallucinated references.**
+
+---
+
+## Quick Start
+
+```bash
+# 1. Clone + install
+git clone https://github.com/argahv/sisyphus-academica.git
+cd sisyphus-academica
+bash install.sh
+
+# 2. Configure API keys (free)
+cp .env.example .env
+# Add your Semantic Scholar API key + CrossRef email
+
+# 3. Write a paper
+# OpenCode → agent tab → select "research-director"
+# → type: "write a paper about transformer efficiency"
+```
+
+**Prerequisites:** OpenCode (or compatible agent platform), Python 3.10+, LaTeX (optional, for PDF).
+
+**Provider-agnostic** — works with any OpenAI-compatible or Anthropic API. Edit `config/agent-config.json` to switch models:
+
+```json
+{
+  "agents": {
+    "research-director": {
+      "model": "anthropic/claude-opus-4",
+      "fallback_models": [{"model": "anthropic/claude-sonnet-4"}]
+    }
+  }
+}
+```
+
+---
 
 ## Architecture
 
@@ -56,151 +188,137 @@ Includes integrated support for the ARS suite from https://github.com/Imbad0202/
    └─────────────────────────────────────────────────────────────┘
 ```
 
+---
+
 ## The Novelty Engines (The Moat)
 
 Six engines that think like no human can:
 
-1. **The Contrarian** — Inverts every well-established claim in the field
-2. **The Cross-Pollinator** — Imports solutions from 15 completely unrelated fields
-3. **The Assumption Excavator** — Finds unstated assumptions and tests what breaks if they're false
-4. **The Counterfactual Generator** — Rewrites the field's history without key papers
-5. **The Paradox Sifter** — Cross-references every "Limitations" section to find ignored contradictions
-6. **The Heretic** — **Crown jewel.** Generates 50 wild hypotheses from title+abstract alone, then scores them against the actual paper
+1. **The Contrarian** — Inverts every well-established claim in the field. Generates 10 counter-hypotheses.
+2. **The Cross-Pollinator** — Imports solutions from 15 distant fields (astrodynamics, epidemiology, music theory, immunology, 15th-century shipbuilding...).
+3. **The Assumption Excavator** — Finds unstated assumptions and tests what breaks if they're false.
+4. **The Counterfactual Generator** — Rewrites the field's history without the most-cited papers.
+5. **The Paradox Sifter** — Cross-references every "Limitations" section to find ignored contradictions.
+6. **The Heretic** — **Crown jewel.** Generates 50 wild hypotheses from title+abstract alone, scores each against the actual paper, and finds the "haunting idea" — what the paper *should have been*.
+
+---
 
 ## The Adversarial Reviewers
 
-Each paper is independently reviewed by 10 distinct personas running in parallel:
-- Theorist, Empiricist, Pragmatist, Skeptic, Historian, Methodologist, Ethicist, Competitor, Student, Dreamer
+Each paper is independently reviewed by 10 distinct personas running in parallel. All 10 must pass before formatting.
 
-All 10 must pass before the paper proceeds to formatting.
+| Persona | Focus | Typical Critique |
+|---------|-------|-----------------|
+| **Theorist** | Formal proofs, mathematical rigor | "Where's the formal proof?" |
+| **Empiricist** | Experimental design, baselines | "Your baseline is wrong" |
+| **Pragmatist** | Practical applicability | "Does this matter in practice?" |
+| **Skeptic** | Default: results are wrong | "Show me error bars" |
+| **Historian** | Prior art, citation accuracy | "This was done in 1972" |
+| **Methodologist** | Statistical methodology | "Your test assumes normality" |
+| **Ethicist** | Societal implications | "What are the downsides?" |
+| **Competitor** | Novelty relative to existing work | "Minor mod of our 2023 paper" |
+| **Student** | Clarity and accessibility | "I don't understand section 3" |
+| **Dreamer** | "What if you went further?" | "You stopped too early" |
+
+---
 
 ## Quality Gates
 
-1. **Citation Verification**: Every citation checked against 2+ sources
-2. **Statistical Audit**: Every p-value, effect size, and sample size validated
-3. **AI-Pattern Detection**: 41 Humanizer patterns scanned. Density must be < 2/1000 words
-4. **Style Audit**: Zero em dashes allowed. Pattern density < 1/2000 words. Voice must match author profile
-5. **Adversarial Review**: All 10 reviewer personas must recommend acceptance
+Every paper passes through 5 hard gates. **If any gate fails, the paper goes back to revision.**
 
-## Quick Start
+1. **Citation Verification** — Every reference checked against Semantic Scholar + CrossRef APIs. Must be found in 2+ sources. No exceptions.
+2. **Statistical Audit** — Every p-value, effect size, sample size, and test selection validated. No p-hacking, no multiple comparison errors.
+3. **AI-Pattern Detection** — 41 Humanizer patterns scanned. Density must be < 2 violations per 1000 words.
+4. **Style Audit** — Zero em dashes. Pattern density < 1/2000 words. Voice must match the author's writing profile.
+5. **Adversarial Review** — All 10 reviewer personas must recommend acceptance. Not a subset. All 10.
 
-```bash
-# Install
-bash install.sh
+---
 
-# Start a paper
-# Select research-director from the OpenCode agent tab
-# Then say: "write a paper about [topic]"
+## Live Example: SIREN Paper
 
-# Or run the pipeline manually:
-python3 tools/literature_client.py "transformer efficiency" --output papers/literature.json
-python3 tools/citation_verifier.py --findings papers/draft.json --output papers/verified.json
-```
+The pipeline was run to produce a full paper on **Intent-Based Blockchain Execution via Agentic RAG and Swarm Consensus**. Complete output in [`examples/siren-paper/`](examples/siren-paper/):
 
-## Integrated External Skills (ARS)
+| File | Description |
+|------|-------------|
+| `siren-paper.pdf` | 13-page compiled paper |
+| `siren-paper.tex` | LaTeX source (504 lines, 26 references) |
+| `figures/*.pdf` | 3 publication-ready figures |
+| `README.md` | Pipeline summary with review scores |
 
-This project now installs and wires in the four ARS research skills during setup:
-- `deep-research`
-- `academic-paper`
-- `academic-paper-reviewer`
-- `academic-pipeline`
+**Review scores progressed from Avg 4.6/10 → 8/10 across 4 revision rounds.**
 
-Integration details:
-- `install.sh` clones `Imbad0202/academic-research-skills` into `~/.config/opencode/skills/academic-research-skills`
-- It symlinks each ARS skill folder into `~/.config/opencode/skills/` so discovery follows `<install-root>/<skill-name>/SKILL.md`
-- `config/agent-config.json` enables these skills on `research-director`
+---
 
-Example intents to trigger ARS workflows through `research-director`:
-- "Run a deep literature synthesis on [topic]"
-- "Draft a full academic paper from this outline"
-- "Act as peer reviewers and produce revision guidance"
-- "Run the full research-to-paper pipeline with checkpoints"
+## FAQ
 
-## Tooling Upgrades
+**Q: Does this require a specific LLM provider?**  
+No. Edit `config/agent-config.json` to use any OpenAI-compatible or Anthropic API.
 
-### Literature Client
+**Q: Can I add my own LaTeX template?**  
+Yes. Add a folder under `templates/` with `.tex`, `.sty`, and `.cls` files, then update `subagents/formatter.md`.
 
-The literature client now supports stronger deduplication, environment-aware API headers,
-paper ranking, domain-aware scoring, filtering, and markdown report export.
+**Q: How long does a paper take?**  
+30 minutes to 4 hours depending on LLM speed, literature volume, and revision rounds.
 
-```bash
-# Top-50 recent papers from 2021+, plus markdown summary
-python3 tools/literature_client.py "retrieval augmented generation" \
-      --max-per-source 120 \
-      --since-year 2021 \
-      --domain fast-moving-ml \
-      --top 50 \
-      --output out/papers/literature.json \
-      --report-md out/papers/literature-report.md
-```
+**Q: The output sounds too AI-like. What do I do?**  
+Provide 2-3 paragraphs of your published writing in `data/voice-profile/`. The writers will match your voice at the sentence level.
 
-Domain profiles:
-- `auto` (query-based inference)
-- `general`
-- `fast-moving-ml`
-- `theory`
-- `biomedical`
+**Q: Can I use this without OpenCode?**  
+The agents are OpenCode-compatible, but the Python CLI tools (`tools/literature_client.py`, `tools/citation_verifier.py`) work standalone.
 
-### Citation Verifier
+**Q: How do I contribute?**  
+See [CONTRIBUTING.md](CONTRIBUTING.md). Good first issues are tagged. Template stubs need filling, the PyPI package needs publishing, and more reviewer personas are welcome.
 
-The verifier now extracts citations from manuscript text context (not empty claims),
-supports strict two-source validation, and exposes configurable title match thresholds.
-
-```bash
-# Verify markdown manuscript with strict 2-source checks
-python3 tools/citation_verifier.py \
-      --text-file out/papers/draft.md \
-      --strict-two-source \
-      --min-match-score 0.50 \
-      --output out/papers/citation-audit.json
-```
-
-### One-Command Pipeline
-
-Run literature retrieval, markdown report generation, and citation verification in one command:
-
-```bash
-python3 tools/paper_pipeline.py "transformer efficiency" \
-      --manuscript out/papers/draft.md \
-      --since-year 2021 \
-      --domain auto \
-      --top 50 \
-      --strict-two-source \
-      --out-dir out/papers
-```
-
-Generated artifacts:
-- `out/papers/literature.json`
-- `out/papers/literature-report.md`
-- `out/papers/citation-audit.json`
-- `out/papers/pipeline-summary.md`
-
-## Tests
-
-```bash
-python3 -m unittest discover -s tests -p "test_*.py"
-```
-
-Use `.env` values from `.env.example` for `SEMANTIC_SCHOLAR_API_KEY` and
-`CROSSREF_EMAIL` to improve API reliability and rate limits.
+---
 
 ## Directory Structure
 
 ```
-MedAI/
-├── orchestrator/          # Research Director agent
-├── subagents/             # Core writing pipeline agents
+sisyphus-academica/
+├── orchestrator/          # Research Director agent (the conductor)
+├── subagents/             # Core writing pipeline agents (writer, verifier, etc.)
 ├── novelty-engines/       # 6 novelty generation agents
 ├── reviewers/             # 10 adversarial reviewer personas
-├── skills/                # Academic Humanizer skill (extends blader/humanizer)
-├── tools/                 # Python toolchain
-├── templates/             # LaTeX venue templates
-├── config/                # Agent config + settings
+├── skills/                # 17 portable skill files (also available as standalone [novelty-skills](https://github.com/argahv/novelty-skills) repo)
+├── tools/                 # Python CLI toolchain
+│   ├── literature_client.py    # Multi-source lit search
+│   └── citation_verifier.py    # Citation verification + BibTeX
+├── templates/             # LaTeX venue templates (add yours)
+├── config/                # Agent configuration
+├── examples/siren-paper/  # Full pipeline output (13-page paper)
 ├── data/                  # Research memory + voice profiles
-└── out/                   # Generated papers and figures
+├── tests/                 # Python unit tests
+├── docs/                  # GitHub Pages documentation
+├── docker-compose.yml     # LaTeX + dev environments
+└── pyproject.toml         # Package metadata
 ```
+
+---
+
+## Development
+
+```bash
+pip install -r requirements.txt
+python -m pytest tests/ -v
+flake8 tools/ --max-line-length=100
+
+# LaTeX via Docker
+docker compose --profile latex run latex pdflatex out/papers/paper.tex
+```
+
+---
 
 ## Acknowledgments
 
-- **Humanizer** by blader — the 30-pattern AI-detection skill this system builds on
-- **OpenCode** + **OhMyOpenAgent** — the agent orchestration platform
+- **[Humanizer](https://github.com/blader/humanizer)** by blader — the 30-pattern AI-detection skill this system builds on
+- **[Novelty Skills](https://github.com/argahv/novelty-skills)** — standalone thinking tools for AI agents (separate repo)
+- **[OpenCode](https://opencode.ai/)** + **[OhMyOpenAgent](https://omo.dev/)** — agent orchestration platform
+- All six novelty engines were inspired by cognitive diversity research
+
+---
+
+## License
+
+MIT — see [LICENSE](LICENSE) for details.
+
+⭐ **Star this repo if you write research papers — it helps others find it.**

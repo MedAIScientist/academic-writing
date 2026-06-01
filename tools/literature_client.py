@@ -12,7 +12,9 @@ import time
 import urllib.parse
 import urllib.request
 import xml.etree.ElementTree as ET
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
+import difflib
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -374,10 +376,17 @@ def search_openalex(query: str, per_page: int = 50) -> List[Dict[str, Any]]:
         return []
 
 
-def deduplicate_papers(all_papers: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-    """Remove duplicate papers across sources using DOI/arXiv/title keys."""
+def deduplicate_papers(
+    all_papers: List[Dict[str, Any]],
+    fuzzy_threshold: float = 0.85,
+) -> List[Dict[str, Any]]:
+    """Remove duplicate papers across sources using DOI/arXiv/title keys.
+
+    Falls back to fuzzy title matching to catch near-duplicates without DOI/arXiv IDs.
+    """
     seen: Dict[str, int] = {}
     unique: List[Dict[str, Any]] = []
+    seen_title_prefixes: List[str] = []
 
     for paper in all_papers:
         doi = (paper.get('doi') or '').lower().strip()
@@ -389,10 +398,25 @@ def deduplicate_papers(all_papers: List[Dict[str, Any]]) -> List[Dict[str, Any]]
         elif arxiv_id:
             key = f'arxiv:{arxiv_id}'
         else:
-            key = f'title:{normalized_title[:120]}'
+            key = f'title:{normalized_title[:80]}'
 
         if not normalized_title:
             continue
+
+        if not doi and not arxiv_id:
+            title_prefix = normalized_title[:80]
+            duplicate_by_title = False
+            for previous in seen_title_prefixes:
+                if title_prefix == previous:
+                    duplicate_by_title = True
+                    break
+                if fuzzy_threshold > 0.0:
+                    ratio = difflib.SequenceMatcher(None, title_prefix, previous).ratio()
+                    if ratio >= fuzzy_threshold:
+                        duplicate_by_title = True
+                        break
+            if duplicate_by_title:
+                continue
 
         if key in seen:
             existing = unique[seen[key]]
@@ -409,6 +433,8 @@ def deduplicate_papers(all_papers: List[Dict[str, Any]]) -> List[Dict[str, Any]]
         paper_copy['sources'] = [paper.get('source', '')]
         seen[key] = len(unique)
         unique.append(paper_copy)
+        if not doi and not arxiv_id:
+            seen_title_prefixes.append(normalized_title[:80])
 
     return unique
 
@@ -494,38 +520,43 @@ def search_all(
     domain: str,
     top_n: Optional[int],
 ) -> Dict[str, Any]:
-    """Search all sources sequentially with polite pacing and post-processing."""
-    results = {}
+    """Search all sources in parallel and apply post-processing."""
+    results: Dict[str, List[Dict[str, Any]]] = {}
 
     api_config = load_api_config()
 
     print(f"  Searching all sources for: {query}")
 
-    results['arxiv'] = search_arxiv(query, max_results=max_per_source)
-    time.sleep(3)  # Rate limit: arXiv is ~1 req/3s
-    print(f"    arXiv: {len(results['arxiv'])} papers")
+    search_jobs = {
+        'arxiv': lambda: search_arxiv(query, max_results=max_per_source),
+        'semantic_scholar': lambda: search_semantic_scholar(
+            query,
+            api_config=api_config,
+            limit=max_per_source,
+        ),
+        'crossref': lambda: search_crossref(query, api_config=api_config, rows=max_per_source),
+        'openalex': lambda: search_openalex(query, per_page=max_per_source),
+    }
 
-    results['semantic_scholar'] = search_semantic_scholar(
-        query,
-        api_config=api_config,
-        limit=max_per_source,
-    )
-    time.sleep(1)
-    print(f"    Semantic Scholar: {len(results['semantic_scholar'])} papers")
-
-    results['crossref'] = search_crossref(query, api_config=api_config, rows=max_per_source)
-    time.sleep(1)
-    print(f"    CrossRef: {len(results['crossref'])} papers")
-
-    results['openalex'] = search_openalex(query, per_page=max_per_source)
-    print(f"    OpenAlex: {len(results['openalex'])} papers")
+    with ThreadPoolExecutor(max_workers=len(search_jobs)) as pool:
+        future_to_source = {
+            pool.submit(job): source for source, job in search_jobs.items()
+        }
+        for future in as_completed(future_to_source):
+            source = future_to_source[future]
+            try:
+                results[source] = future.result()
+            except Exception as err:  # pragma: no cover - network failure path
+                print(f"    {source}: failed ({err})")
+                results[source] = []
+            print(f"    {source}: {len(results[source])} papers")
 
     # Merge and deduplicate
     all_papers: List[Dict[str, Any]] = []
     for source_papers in results.values():
         all_papers.extend(source_papers)
 
-    unique = deduplicate_papers(all_papers)
+    unique = deduplicate_papers(all_papers, fuzzy_threshold=0.85)
     filtered = filter_papers(unique, since_year=since_year, open_access_only=open_access_only)
     ranked = rank_papers(filtered, query=query, domain=domain, top_n=top_n)
     effective_domain = infer_domain_from_query(query) if domain == 'auto' else domain

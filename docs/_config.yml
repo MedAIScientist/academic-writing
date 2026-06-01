@@ -1,0 +1,7 @@
+theme: null
+title: Sisyphus Academica
+description: Open-source research pipeline — literature review, novelty generation, citation verification, and adversarial review.
+url: https://argahv.github.io
+baseurl: /sisyphus-academica
+markdown: kramdown
+highlighter: rouge

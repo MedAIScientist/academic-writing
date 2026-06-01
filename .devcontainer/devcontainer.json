@@ -1,0 +1,33 @@
+{
+  "name": "Sisyphus Academica",
+  "image": "mcr.microsoft.com/devcontainers/python:3.11",
+  "features": {
+    "ghcr.io/devcontainers/features/python:1": {},
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {},
+    "ghcr.io/devcontainers/features/git:1": {}
+  },
+  "onCreateCommand": "pip install --upgrade pip && pip install -r requirements.txt",
+  "postCreateCommand": "bash install.sh --dev",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-python.python",
+        "ms-python.flake8",
+        "yzhang.markdown-all-in-one",
+        "James-Yu.latex-workshop",
+        "GitHub.copilot"
+      ],
+      "settings": {
+        "python.testing.pytestArgs": ["tests"],
+        "python.testing.unittestEnabled": false,
+        "python.testing.pytestEnabled": true,
+        "flake8.args": ["--max-line-length=100"],
+        "editor.formatOnSave": true
+      }
+    }
+  },
+  "remoteUser": "vscode",
+  "containerEnv": {
+    "SISYPHUS_ACADEMICA_DIR": "/workspaces/sisyphus-academica"
+  }
+}

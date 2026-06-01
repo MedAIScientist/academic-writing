@@ -1,0 +1,63 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.backends._legacy:_Backend"
+
+[project]
+name = "sisyphus-academica"
+version = "0.2.0"
+description = "Open-source research pipeline — literature review, novelty generation, citation verification, and adversarial review."
+readme = "README.md"
+license = {text = "MIT"}
+authors = [
+    { name = "argahv" }
+]
+requires-python = ">=3.10"
+keywords = ["research", "academic", "citation-verification", "literature-review", "multi-agent"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Text Processing :: Markup :: LaTeX",
+]
+
+[project.urls]
+"Source" = "https://github.com/argahv/sisyphus-academica"
+"Bug Tracker" = "https://github.com/argahv/sisyphus-academica/issues"
+"Homepage" = "https://argahv.github.io/sisyphus-academica/"
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4",
+    "pytest-mock>=3.11",
+    "flake8>=6.0",
+    "requests>=2.31",
+    "pre-commit>=3.0",
+]
+all = [
+    "requests>=2.31",
+    "scienceplots>=2.0",
+    "seaborn>=0.12",
+    "scipy>=1.10",
+    "scikit-learn>=1.3",
+    "statsmodels>=0.14",
+    "matplotlib>=3.7",
+]
+
+[project.scripts]
+academica = "sisyphus.cli:main"
+
+[tool.setuptools]
+packages = ["sisyphus", "sisyphus.tools"]
+package-dir = {"sisyphus" = "src/sisyphus", "sisyphus.tools" = "tools"}
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+
+[tool.flake8]
+max-line-length = 100
+ignore = ["E501", "W291"]
