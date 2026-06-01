@@ -96,6 +96,21 @@ All 10 must pass before the paper proceeds to formatting.
 
 ---
 
+## Live Example: SIREN Paper
+
+The pipeline was run to produce a full paper on **Intent-Based Blockchain Execution via Agentic RAG and Swarm Consensus**. The complete output is in `examples/siren-paper/`:
+
+| File | Description |
+|------|-------------|
+| `siren-paper.pdf` | 13-page compiled paper (PDF) |
+| `siren-paper.tex` | LaTeX source (504 lines, 26 references, 2 algorithms, 3 tables) |
+| `figures/*.pdf` | 3 publication-ready figures (Byzantine robustness, latency, architecture) |
+| `README.md` | Pipeline summary with review scores |
+
+**Pipeline stats:** 100+ papers surveyed, 6 novelty engines, 10 adversarial reviewers, 4 revision rounds, 0 AI-pattern violations, 0 em dashes.
+
+---
+
 ## Quality Gates
 
 1. **Citation Verification**: Every citation checked against 2+ sources (Semantic Scholar + CrossRef)
