@@ -13,9 +13,9 @@ The <code>sisyphus</code> command provides access to all pipeline tools:
 |---------|-------------|
 | <code>sisyphus demo</code> | Run demo with built-in example data (no API keys) |
 | <code>sisyphus configure</code> | Interactive API key setup |
-| <code>sisyphus search QUERY</code> | Search literature across 4 APIs |
-| <code>sisyphus verify FILE</code> | Verify citations in a paper JSON file |
-| <code>sisyphus bibtex DOI</code> | Generate BibTeX entry from a DOI |
+| <code>academica search QUERY</code> | Search literature across 4 APIs |
+| <code>academica verify FILE</code> | Verify citations in a paper JSON file |
+| <code>academica bibtex DOI</code> | Generate BibTeX entry from a DOI |
 
 ## literature_client.py
 

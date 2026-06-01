@@ -16,9 +16,9 @@ title: Home
 
 <div class="demo-block">
   <div class="cmd"><span class="prompt">$</span> <span class="input">pip install sisyphus-academica</span></div>
-  <div class="cmd"><span class="prompt">$</span> <span class="input">sisyphus demo</span></div>
+  <div class="cmd"><span class="prompt">$</span> <span class="input">academica demo</span></div>
   <div class="output">Running pipeline on example topic: 'Transformer Efficiency' ...</div>
-  <div class="cmd" style="margin-top:var(--space-sm)"><span class="prompt">$</span> <span class="input">sisyphus search "transformer efficiency"</span></div>
+  <div class="cmd" style="margin-top:var(--space-sm)"><span class="prompt">$</span> <span class="input">academica search "transformer efficiency"</span></div>
 </div>
 
 <p>Or use the novelty engines as standalone agent skills — no install needed:</p>

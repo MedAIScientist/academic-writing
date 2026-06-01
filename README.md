@@ -11,12 +11,13 @@
 
 </div>
 
-A self-coordinating pipeline of 20+ specialized agents that helps researchers find papers, generate novel hypotheses, verify citations, and improve writing quality. Not a paper mill — a research assistant that handles the grunt work so you can focus on the thinking.
+A self-coordinating pipeline of 20+ specialized agents that helps researchers find papers, generate novel hypotheses, verify citations, and improve writing quality.
 
 ```bash
-pip install sisyphus-academica
-sisyphus demo     # See the pipeline in action (no API keys needed)
-sisyphus write "transformer efficiency"   # Full pipeline
+git clone https://github.com/argahv/sisyphus-academica.git
+cd sisyphus-academica
+pip install -e .
+academica demo
 ```
 
 ---
@@ -25,7 +26,7 @@ sisyphus write "transformer efficiency"   # Full pipeline
 
 | Task | Without Sisyphus | With Sisyphus |
 |------|------------------|---------------|
-| Literature review | Read 10-50 papers manually | Scouts 500+ across 4 APIs in parallel |
+| Literature review | Read 10-50 papers manually | Scouts 400+ across 4 APIs in parallel |
 | Citation checking | Trust the author | Verified against Semantic Scholar + CrossRef |
 | Novel ideas | "What's the gap?" | 6 engines generate 50+ structured hypotheses |
 | Writing quality | Post-hoc AI detection | 41 Humanizer patterns enforced during generation |
@@ -37,43 +38,57 @@ sisyphus write "transformer efficiency"   # Full pipeline
 
 ## Quick Start
 
-### One command (recommended)
+### Python CLI tools
 
 ```bash
-pip install sisyphus-academica
+git clone https://github.com/argahv/sisyphus-academica.git
+cd sisyphus-academica
+pip install -e .
+
+academica demo              # Interactive pipeline demo (no API keys)
+academica search QUERY      # Search 4 academic APIs in parallel
+academica verify FILE       # Verify citations in a paper JSON
+academica bibtex DOI        # Generate BibTeX from DOI
+academica configure         # Set up API keys interactively
 ```
 
-Then configure your literature API keys (free, optional — works without them at lower rate limits):
+### Portable agent skills (any agent)
 
 ```bash
-sisyphus configure
-```
-
-### Without installing
-
-Browse the novelty engines and reviewer personas as standalone skills:
-
-```
-# These work with any agent (Claude Code, Codex, Cursor, etc.)
 git clone https://github.com/argahv/sisyphus-academica
 cp -r skills/novelty-engines ~/.claude/skills/
 cp -r skills/reviewers ~/.claude/skills/
+```
+
+```
+/contrarian "The claim: 'Attention is all you need'"
+/cross-pollinator "Problem: How to reduce LLM hallucination"
+```
+
+### Full paper pipeline (requires OpenCode)
+
+```bash
+git clone https://github.com/argahv/sisyphus-academica.git
+cd sisyphus-academica
+bash install.sh
+# OpenCode → agent tab → select "research-director"
+# → "write a paper about transformer efficiency"
 ```
 
 ---
 
 ## What You Get
 
-### 6 Novelty Engines (The Moat)
+### 6 Novelty Engines
 
 | Engine | What it does | Best for |
 |--------|-------------|----------|
-| **Contrarian** | Inverts every well-established claim — generates 10 counter-hypotheses | Breaking out of consensus thinking |
-| **Cross-Pollinator** | Imports solutions from 15 distant fields (astrodynamics → biology, monetary policy → ML) | Stuck problems |
-| **Assumption Excavator** | Finds unstated assumptions and tests what breaks if they're false | Design reviews |
-| **Counterfactual Generator** | Rewrites a field's history without the most-cited papers | Finding overlooked approaches |
-| **Paradox Sifter** | Cross-references "Limitations" sections across papers to find contradictions | Literature review gaps |
-| **Heretic** | Generates 50 wild hypotheses from title+abstract alone, scores against reality | Breakthrough ideas |
+| **Contrarian** | Inverts every well-established claim — 10 counter-hypotheses | Breaking consensus thinking |
+| **Cross-Pollinator** | Imports solutions from 15 distant fields | Stuck problems |
+| **Assumption Excavator** | Finds unstated assumptions, tests if false | Design reviews |
+| **Counterfactual Generator** | Rewrites field history without key papers | Overlooked approaches |
+| **Paradox Sifter** | Cross-references Limitations sections for contradictions | Literature gaps |
+| **Heretic** | 50 wild hypotheses from title+abstract, scores vs reality | Breakthrough ideas |
 
 ### 10 Adversarial Reviewers
 
@@ -92,47 +107,19 @@ cp -r skills/reviewers ~/.claude/skills/
 
 ---
 
-## Architecture
+## Quality Gates
 
-```
-                     ┌──────────────────────────────┐
-                     │  Research Director            │
-                     │  (orchestrator)               │
-                     └────────┬─────────────────────┘
-                              │
-         ┌────────────────────┼─────────────────────────┐
-         ▼                    ▼                          ▼
-   ┌───────────┐    ┌────────────────┐    ┌──────────────────────┐
-   │ Literature│    │ 6 Novelty      │    │ Gap Analyzer         │
-   │ Scout ×5  │    │ Engines        │    │ + Methodology        │
-   └───────────┘    └────────────────┘    └──────────────────────┘
-                              │
-         ┌────────────────────┼─────────────────────────┐
-         ▼                    ▼                          ▼
-   ┌─────────────────────────────────────────────────────────────┐
-   │  Parallel Writing Swarm (5 agents + 41 Humanizer patterns)   │
-   └──────────────────────────┬──────────────────────────────────┘
-                              │
-   ┌─────────────────────────────────────────────────────────────┐
-   │  Verifier: Citations × Statistics × AI-Pattern Detection    │
-   └──────────────────────────┬──────────────────────────────────┘
-                              │
-   ┌─────────────────────────────────────────────────────────────┐
-   │  Adversarial Review: 10 reviewer personas (parallel)        │
-   └──────────────────────────┬──────────────────────────────────┘
-                              │
-   ┌─────────────────────────────────────────────────────────────┐
-   │  Style Auditor: Humanizer certification, em dash zero check │
-   └──────────────────────────┬──────────────────────────────────┘
-                              │
-   ┌─────────────────────────────────────────────────────────────┐
-   │  Formatter: LaTeX template, BibTeX, figures, PDF            │
-   └─────────────────────────────────────────────────────────────┘
-```
+Every paper passes 5 gates. If any fails, it goes back to revision.
+
+1. **Citation Verification** — Every reference checked against Semantic Scholar + CrossRef. 2+ sources.
+2. **Statistical Audit** — Every p-value, effect size, sample size validated.
+3. **AI-Pattern Detection** — 41 patterns scanned (30 base + 11 academic). Density < 2/1000 words.
+4. **Style Audit** — Zero em dashes. Voice matches author's profile.
+5. **Adversarial Review** — All 10 reviewer personas must recommend acceptance.
 
 ---
 
-## For Developers
+## Development
 
 ```bash
 git clone https://github.com/argahv/sisyphus-academica.git
@@ -140,50 +127,6 @@ cd sisyphus-academica
 pip install -e ".[dev]"
 python -m pytest tests/ -v
 ```
-
-### Running the full pipeline
-
-```bash
-# Requires a model provider (OpenAI, Anthropic, or any OpenAI-compatible API)
-cp .env.example .env  # Add your API keys
-bash install.sh
-```
-
-### Installing agents into OpenCode
-
-```bash
-bash install.sh
-# Then: opencode → agent tab → select "research-director"
-```
-
----
-
-## Provider-Agnostic
-
-Works with any OpenAI-compatible or Anthropic API. Edit `config/agent-config.json`:
-
-```json
-{
-  "agents": {
-    "research-director": {
-      "model": "anthropic/claude-opus-4",
-      "fallback_models": [{"model": "anthropic/claude-sonnet-4"}]
-    }
-  }
-}
-```
-
----
-
-## Quality Gates
-
-Every paper passes 5 gates. If any fails, it goes back to revision.
-
-1. **Citation Verification** — Every reference checked against 2+ APIs. No exceptions.
-2. **Statistical Audit** — Every p-value, effect size, sample size validated. No p-hacking.
-3. **AI-Pattern Detection** — 41 Humanizer patterns scanned. Density < 2/1000 words.
-4. **Style Audit** — Zero em dashes. Voice matches author's profile.
-5. **Adversarial Review** — All 10 reviewer personas must recommend acceptance.
 
 ---
 
@@ -195,10 +138,9 @@ sisyphus-academica/
 ├── subagents/             # Writing pipeline agents
 ├── novelty-engines/       # 6 novelty generation engines
 ├── reviewers/             # 10 adversarial reviewer personas
-├── skills/                # Standalone skill files (portable to any agent)
+├── skills/                # Standalone skill files (portable)
 ├── tools/                 # Python CLI toolchain
 ├── templates/             # LaTeX venue templates
-├── config/                # Agent configuration
 ├── examples/siren-paper/  # Full pipeline output (13-page paper)
 ├── tests/                 # Python unit tests
 └── docs/                  # GitHub Pages documentation

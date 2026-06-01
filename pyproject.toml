@@ -48,7 +48,7 @@ all = [
 ]
 
 [project.scripts]
-sisyphus = "sisyphus.cli:main"
+academica = "sisyphus.cli:main"
 
 [tool.setuptools]
 packages = ["sisyphus", "sisyphus.tools"]

@@ -12,7 +12,7 @@ The Python CLI tools (literature search, citation verification, demo) install in
 <div class="demo-block">
   <div class="cmd"><span class="prompt">$</span> <span class="input">pip install sisyphus-academica</span></div>
   <div class="cmd"><span class="prompt">$</span> <span class="input">sisyphus demo</span></div>
-  <div class="cmd"><span class="prompt">$</span> <span class="input">sisyphus configure</span></div>
+  <div class="cmd"><span class="prompt">$</span> <span class="input">academica configure</span></div>
 </div>
 
 <div class="info-box">

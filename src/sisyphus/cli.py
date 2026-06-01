@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 """
-Sisyphus Academica CLI — research pipeline tools.
+academica CLI — research pipeline tools.
 
 Usage:
-    sisyphus demo              Run demo (generates mini paper, no API keys)
-    sisyphus configure         Set up API keys interactively
-    sisyphus search QUERY      Search literature (arXiv, Semantic Scholar, etc.)
-    sisyphus verify FILE       Verify citations in a paper JSON file
-    sisyphus bibtex DOI        Generate BibTeX entry from a DOI
+    academica demo              Run demo (generates mini paper, no API keys)
+    academica configure         Set up API keys interactively
+    academica search QUERY      Search literature (arXiv, Semantic Scholar, etc.)
+    academica verify FILE       Verify citations in a paper JSON file
+    academica bibtex DOI        Generate BibTeX entry from a DOI
 """
 
 import sys
