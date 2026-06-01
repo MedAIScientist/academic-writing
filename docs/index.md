@@ -20,14 +20,14 @@ cp .env.example .env
 
 | Page | Description |
 |------|-------------|
-| [Architecture](/argahv/sisyphus-academica/blob/main/docs/architecture.md) | System design, component roles, data flow |
-| [Pipeline Phases](/argahv/sisyphus-academica/blob/main/docs/pipeline.md) | All 10 phases: literature review → novelty → writing → review → PDF |
-| [Agent Catalog](/argahv/sisyphus-academica/blob/main/docs/agents.md) | Every agent: orchestrator, subagents, novelty engines, reviewers |
-| [Novelty Engines](/argahv/sisyphus-academica/blob/main/docs/novelty-engines.md) | Deep dive into all 6 novelty engines |
-| [Adversarial Reviewers](/argahv/sisyphus-academica/blob/main/docs/reviewers.md) | All 10 reviewer personas with evaluation criteria |
-| [Tool Reference](/argahv/sisyphus-academica/blob/main/docs/tools.md) | CLI docs for literature_client.py and citation_verifier.py |
-| [Contributing](/argahv/sisyphus-academica/blob/main/CONTRIBUTING.md) | How to contribute |
-| [FAQ](/argahv/sisyphus-academica/blob/main/docs/faq.md) | Frequently asked questions |
+| [Architecture](architecture) | System design, component roles, data flow |
+| [Pipeline Phases](pipeline) | All 10 phases: literature review → novelty → writing → review → PDF |
+| [Agent Catalog](agents) | Every agent: orchestrator, subagents, novelty engines, reviewers |
+| [Novelty Engines](novelty-engines) | Deep dive into all 6 novelty engines |
+| [Adversarial Reviewers](reviewers) | All 10 reviewer personas with evaluation criteria |
+| [Tool Reference](tools) | CLI docs for literature_client.py and citation_verifier.py |
+| [Contributing](https://github.com/argahv/sisyphus-academica/blob/main/CONTRIBUTING.md) | How to contribute |
+| [FAQ](faq) | Frequently asked questions |
 
 ## What Makes This Different
 

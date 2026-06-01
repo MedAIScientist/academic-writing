@@ -14,7 +14,7 @@ Yes. The agents are designed for the OpenCode agent platform.
 30 minutes to 4 hours depending on LLM speed, literature volume, revision rounds.
 
 **Q: Can I add my own template?**
-Yes. See the [Template Guide](https://github.com/argahv/sisyphus-academica/blob/main/docs/templates.md).
+Yes. See the [Template Guide](https://github.com/argahv/sisyphus-academica/blob/main/CONTRIBUTING.md#adding-a-venue-template).
 
 ## Novelty
 
