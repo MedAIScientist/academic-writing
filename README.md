@@ -47,8 +47,9 @@ The novelty engines and reviewer personas are packaged as **standalone agent ski
 
 ```bash
 git clone https://github.com/argahv/sisyphus-academica.git
-cp -r skills/novelty-engines ~/.claude/skills/
-cp -r skills/reviewers ~/.claude/skills/
+# Manual: copy individual skill directories
+cp -r skills/contrarian ~/.claude/skills/
+# Or use npx (see below)
 ```
 
 Or install any skill with a single command:
@@ -68,6 +69,8 @@ Then invoke directly in your agent:
 ```
 
 **6 novelty engines + 10 reviewers + academic humanizer = 17 portable skills**.
+
+> 💡 **Prefer a standalone repo?** The 6 novelty engines and 5 reviewer personas are also available as a dedicated skill pack at **[argahv/novelty-skills](https://github.com/argahv/novelty-skills)** — install via `npx skills add argahv/novelty-skills`.
 
 ---
 
@@ -291,7 +294,7 @@ sisyphus-academica/
 ├── subagents/             # Core writing pipeline agents (writer, verifier, etc.)
 ├── novelty-engines/       # 6 novelty generation agents
 ├── reviewers/             # 10 adversarial reviewer personas
-├── skills/                # 12 portable skill files (novelty-engines + reviewers + academic humanizer)
+├── skills/                # 17 portable skill files (also available as standalone [novelty-skills](https://github.com/argahv/novelty-skills) repo)
 ├── tools/                 # Python CLI toolchain
 │   ├── literature_client.py    # Multi-source lit search
 │   └── citation_verifier.py    # Citation verification + BibTeX
