@@ -37,6 +37,8 @@ Sisyphus Academica has 20+ agents organized into 5 groups.
 | **The Paradox Sifter** | Cross-references "Limitations" sections for contradictions |
 | **The Heretic** | Generates 50 wild hypotheses from title+abstract alone |
 
+These are also available as **standalone portable skills** in the `skills/novelty-engines/` directory — copy them to `~/.claude/skills/` and use with any agent.
+
 ## Adversarial Reviewers
 
 | Persona | Focus |
@@ -51,3 +53,24 @@ Sisyphus Academica has 20+ agents organized into 5 groups.
 | Competitor | Novelty relative to existing work |
 | Student | Clarity and accessibility |
 | Dreamer | "What if you went further?" |
+
+Standalone versions also in `skills/reviewers/`.
+
+## Skills (Portable)
+
+The `skills/` directory contains standalone SKILL.md files for 6 novelty engines and 5 reviewer personas. These work with any agent that reads the SKILL.md format (Claude Code, Codex, Cursor, Gemini CLI, etc.).
+
+To use:
+
+```bash
+cp -r skills/novelty-engines ~/.claude/skills/
+cp -r skills/reviewers ~/.claude/skills/
+```
+
+Then invoke in any agent:
+
+```
+/contrarian "The claim: 'Attention is all you need'"
+/cross-pollinator "Problem: How to reduce LLM hallucination"
+/heretic "Paper: 'Scaling Laws for Neural Language Models'"
+```
