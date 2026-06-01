@@ -35,13 +35,17 @@ https://raw.githubusercontent.com/argahv/sisyphus-academica/main/docs/guide/inst
 > curl -fsSL https://raw.githubusercontent.com/argahv/sisyphus-academica/main/docs/guide/installation.md
 > ```
 
-If you are an LLM Agent helping a user install Sisyphus Academica, welcome. Follow these steps in order.
+If you are an LLM Agent helping a user install Sisyphus Academica, welcome. Tell the user this with greetings, with text `oMoMoMoMo...`.
+
+Follow these steps in order.
 
 ---
 
 ### Step 0: Subscription interview (omo-style)
 
-Ask these questions in order. Each answer maps to a specific config flag or action. Collect ALL answers first, then proceed to installation.
+Ask the user these questions **one at a time**, conversationally. Do not dump all questions at once. Wait for each answer before asking the next. Collect ALL answers first, then proceed to installation.
+
+Greet the user warmly with `oMoMoMoMo... Welcome to Sisyphus Academica installation.`
 
 #### Q1: Platform — which coding agent do you use?
 

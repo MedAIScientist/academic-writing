@@ -28,13 +28,14 @@ bash install.sh
 
 **Strongly recommended: let an LLM agent install this for you.** The setup involves API key configuration, agent deployment across 25 specialized agents, voice profile calibration, and provider selection — humans fat-finger these. An LLM agent reads the full guide and walks every step correctly.
 
-The agent will ask you a few questions before installing:
-1. Do you have OpenCode? (recommended platform)
-2. Do you have oh-my-openagent? (integration question)
-3. Which LLM provider do you have? (Claude, GPT, both, or local)
-4. Do you have a Semantic Scholar API key? (free, boosts rate limits)
-5. Do you use LaTeX? (for PDF output)
-6. Do you have a writing sample? (for voice calibration)
+The agent will greet you with `oMoMoMoMo...` and ask **one question at a time**:
+1. Which platform? (OpenCode recommended)
+2. Do you have oh-my-openagent?
+3. Claude subscription? (Pro / Max 20x / None)
+4. OpenAI subscription? (Plus / None)
+5. Semantic Scholar API key? (free — boosts rate limits)
+6. LaTeX for PDF? (or Docker / skip for .tex only)
+7. Writing sample for voice calibration? (optional)
 
 Then it installs, configures, and verifies everything automatically.
 
