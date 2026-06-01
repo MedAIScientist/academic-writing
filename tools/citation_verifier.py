@@ -6,50 +6,66 @@ Flags hallucinations, misattributions, and unverifiable claims.
 """
 
 import json
-import time
-import urllib.error
-import urllib.parse
 import urllib.request
+import urllib.parse
 import re
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Tuple
 
 
 SEMANTIC_SCHOLAR_API = "https://api.semanticscholar.org/graph/v1/paper"
 CROSSREF_API = "https://api.crossref.org/works"
 ARXIV_API = "http://export.arxiv.org/api/query"
 
-RETRYABLE_CODES = {429, 502, 503, 504}
-DEFAULT_MAX_RETRIES = 3
-DEFAULT_BASE_DELAY = 1.0
 
+def extract_citations(text: str) -> List[Dict]:
+    """Extract citations from paper text supporting multiple citation formats.
 
-def _api_request(url: str, headers: Optional[Dict] = None,
-                 timeout: int = 30, max_retries: Optional[int] = None,
-                 base_delay: float = DEFAULT_BASE_DELAY) -> Optional[bytes]:
-    """HTTP GET with exponential backoff retry for transient failures.
+    Supports:
+    - [Bracket] notation: [Smith2020], [1], [JSM2020]
+    - Author (Year): 'Smith (2020) showed that...'
+    - Author et al. (Year): 'Smith et al. (2020) showed...'
+    - (Author, Year): 'As shown in (Smith, 2020)...'
+    - (Author et al., Year): 'As shown in (Smith et al., 2020)...'
 
-    Retries on 429, 502, 503, 504 with delay: base_delay * 2^attempt.
-    Uses DEFAULT_MAX_RETRIES when max_retries is None.
-    Returns None if all retries exhausted.
+    Returns list of dicts with 'key' (citation key) and 'claim' (surrounding context).
     """
-    if max_retries is None:
-        max_retries = DEFAULT_MAX_RETRIES
-    req = urllib.request.Request(url, headers=headers or {})
-    for attempt in range(max_retries):
-        try:
-            with urllib.request.urlopen(req, timeout=timeout) as resp:
-                return resp.read()
-        except urllib.error.HTTPError as e:
-            if e.code in RETRYABLE_CODES and attempt < max_retries - 1:
-                time.sleep(base_delay * (2 ** attempt))
-                continue
-            return None
-        except (urllib.error.URLError, OSError):
-            if attempt < max_retries - 1:
-                time.sleep(base_delay * (2 ** attempt))
-                continue
-            return None
-    return None
+    citations = []
+    seen_keys = set()
+
+    def add(key: str, claim: str):
+        if key and key not in seen_keys:
+            seen_keys.add(key)
+            citations.append({'key': key, 'claim': claim})
+
+    # Pattern 1: [Bracket] notation — [Smith2020], [1], [JSM2020]
+    for m in re.finditer(r'\[([^\]]+)\]', text):
+        key = m.group(1).strip()
+        start = max(0, m.start() - 40)
+        end = min(len(text), m.end() + 60)
+        claim = text[start:end].strip()
+        add(key, claim)
+
+    # Pattern 2: Author (Year) — "Smith (2020)", "Smith et al. (2020)"
+    for m in re.finditer(r'([A-Z][a-z]+(?:\s+et\s+al\.?)?)\s*\((\d{4})\)', text):
+        author = m.group(1).strip()
+        year = m.group(2)
+        key = f'{author}{year}'
+        start = max(0, m.start() - 40)
+        end = min(len(text), m.end() + 60)
+        claim = text[start:end].strip()
+        add(key, claim)
+
+    # Pattern 3: (Author, Year) — "(Smith, 2020)", "(Smith et al., 2020)"
+    for m in re.finditer(r'\(([A-Z][a-z]+(?:\s+et\s+al\.?)?),\s*(\d{4})\)', text):
+        author = m.group(1).strip()
+        year = m.group(2)
+        key = f'{author}{year}'
+        start = max(0, m.start() - 40)
+        end = min(len(text), m.end() + 60)
+        claim = text[start:end].strip()
+        add(key, claim)
+
+    return citations
 
 
 def search_semantic_scholar(title: str) -> Dict:
@@ -60,14 +76,13 @@ def search_semantic_scholar(title: str) -> Dict:
         'fields': 'title,authors,year,abstract,citationCount,externalIds'
     })
     url = f"{SEMANTIC_SCHOLAR_API}/search?{params}"
-
-    body = _api_request(url, headers={'User-Agent': 'SisyphusAcademica/1.0'}, timeout=15)
-    if body is None:
-        return {}
+    
     try:
-        data = json.loads(body.decode('utf-8'))
+        req = urllib.request.Request(url, headers={'User-Agent': 'SisyphusAcademica/1.0'})
+        with urllib.request.urlopen(req, timeout=15) as resp:
+            data = json.loads(resp.read().decode('utf-8'))
         return data.get('data', [{}])[0] if data.get('data') else {}
-    except (json.JSONDecodeError, UnicodeDecodeError):
+    except:
         return {}
 
 
@@ -79,22 +94,20 @@ def search_crossref(title: str) -> Dict:
         'select': 'DOI,title,author,container-title'
     })
     url = f"{CROSSREF_API}?{params}"
-
-    body = _api_request(
-        url,
-        headers={
-            'User-Agent': 'SisyphusAcademica/1.0 (mailto:research@example.com)',
-            'Accept': 'application/json'
-        },
-        timeout=15
-    )
-    if body is None:
-        return {}
+    
     try:
-        data = json.loads(body.decode('utf-8'))
+        req = urllib.request.Request(
+            url,
+            headers={
+                'User-Agent': 'SisyphusAcademica/1.0 (mailto:research@example.com)',
+                'Accept': 'application/json'
+            }
+        )
+        with urllib.request.urlopen(req, timeout=15) as resp:
+            data = json.loads(resp.read().decode('utf-8'))
         items = data.get('message', {}).get('items', [])
         return items[0] if items else {}
-    except (json.JSONDecodeError, UnicodeDecodeError):
+    except:
         return {}
 
 
@@ -148,6 +161,61 @@ def verify_citation(citation_key: str, claim: str) -> Dict:
     return result
 
 
+def extract_citations(text: str) -> List[Dict]:
+    """Extract citations from text supporting multiple citation formats.
+    
+    Supports:
+    - [Bracket] notation: [Smith2020], [1], [JSM2020]
+    - Author (Year): Smith (2020), Smith et al. (2020)
+    - (Author, Year): (Smith, 2020), (Smith et al., 2020)
+    
+    Returns list of dicts with 'key' (citation key) and 'claim' (surrounding context).
+    Duplicate keys are merged (first occurrence wins).
+    """
+    citations = []
+    seen_keys = set()
+    
+    def add_citation(key: str, claim: str):
+        if key and key not in seen_keys:
+            seen_keys.add(key)
+            citations.append({'key': key, 'claim': claim})
+    
+    # Pattern: [Bracket] notation - [Smith2020], [1], [AuthorYear2024]
+    for match in re.finditer(r'\[([^\]]+)\]', text):
+        key = match.group(1).strip()
+        start = max(0, match.start() - 40)
+        end = min(len(text), match.end() + 60)
+        claim = text[start:end].strip()
+        add_citation(key, claim)
+    
+    # Pattern 2: Author (Year) inline - "Smith (2020) showed..."
+    # Matches: "Name (2020)" optionally followed by "et al."
+    for match in re.finditer(
+        r'([A-Z][a-z]+(?:\s+et\s+al\.?)?)\s*\((\d{4})\)',
+        text
+    ):
+        author = match.group(1).strip()
+        year = match.group(2)
+        start = max(0, match.start() - 40)
+        end = min(len(text), match.end() + 60)
+        claim = text[start:end].strip()
+        add_citation(f'{author}{year}', claim)
+    
+    # Pattern 3: (Author, Year) parenthetical - "(Smith, 2020)", "(Smith et al., 2020)"
+    for match in re.finditer(
+        r'\(([A-Z][a-z]+(?:\s+et\s+al\.?)?),\s*(\d{4})\)',
+        text
+    ):
+        author = match.group(1).strip()
+        year = match.group(2)
+        start = max(0, match.start() - 40)
+        end = min(len(text), match.end() + 60)
+        claim = text[start:end].strip()
+        add_citation(f'{author}{year}', claim)
+    
+    return citations
+
+
 def verify_citations(findings: Dict) -> Dict:
     """Verify all citations in a paper findings file."""
     citations = []
@@ -155,10 +223,7 @@ def verify_citations(findings: Dict) -> Dict:
     # Extract citations from text
     if 'paper' in findings:
         text = findings['paper']
-        # Find patterns like [AuthorYear], [1], Smith et al. (2020), etc.
-        citation_patterns = re.findall(r'\[([^\]]+)\]', text)
-        for cp in citation_patterns:
-            citations.append({'key': cp, 'claim': ''})
+        citations = extract_citations(text)
     
     results = []
     for citation in citations:
@@ -200,16 +265,12 @@ def generate_bibtex(paper: Dict) -> str:
 
 
 def main():
-    global DEFAULT_MAX_RETRIES
     import argparse
     parser = argparse.ArgumentParser(description='Sisyphus Academica Citation Verifier')
     parser.add_argument('--findings', '-f', required=True, help='Findings JSON file')
     parser.add_argument('--output', '-o', help='Output file')
     parser.add_argument('--citation', '-c', help='Verify a single citation (overrides --findings)')
-    parser.add_argument('--retries', type=int, default=DEFAULT_MAX_RETRIES,
-                        help=f'Max retries for API calls (default: {DEFAULT_MAX_RETRIES})')
     args = parser.parse_args()
-    DEFAULT_MAX_RETRIES = args.retries
     
     if args.citation:
         result = verify_citation('manual', args.citation)
