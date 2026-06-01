@@ -92,40 +92,44 @@ class TestDeduplicatePapers:
 
 
 class TestSearchFunctions:
-    """Search functions return empty lists on network errors (no mocking needed)."""
+    """Search return empty lists on network errors (safe for CI)."""
 
+    @pytest.mark.timeout(10)
     def test_search_arxiv_returns_list(self):
         result = search_arxiv("machine learning", max_results=5)
         assert isinstance(result, list)
 
+    @pytest.mark.timeout(10)
     def test_search_semantic_scholar_returns_list(self):
         result = search_semantic_scholar("machine learning", limit=5)
         assert isinstance(result, list)
 
+    @pytest.mark.timeout(10)
     def test_search_crossref_returns_list(self):
         result = search_crossref("machine learning", rows=5)
         assert isinstance(result, list)
 
+    @pytest.mark.timeout(10)
     def test_search_openalex_returns_list(self):
         result = search_openalex("machine learning", per_page=5)
         assert isinstance(result, list)
 
+    @pytest.mark.timeout(10)
     def test_search_arxiv_respects_max_results(self):
-        """If network works, verify max_results is honored."""
         result = search_arxiv("transformer efficiency", max_results=10)
-        if result:  # Only verify if network succeeds
+        if result:
             assert len(result) <= 10
 
 
 class TestFetchHelpers:
-    """Test the _fetch_json and _fetch_text helpers."""
+    """Test fetch helpers with invalid URLs (no network needed)."""
 
     def test_fetch_json_invalid_url(self):
         from literature_client import _fetch_json
-        result = _fetch_json("http://nonexistent-domain-12345.com/api")
+        result = _fetch_json("http://nonexistent.invalid/api")
         assert result is None
 
     def test_fetch_text_invalid_url(self):
         from literature_client import _fetch_text
-        result = _fetch_text("http://nonexistent-domain-12345.com/api")
+        result = _fetch_text("http://nonexistent.invalid/api")
         assert result is None

@@ -6,6 +6,8 @@ from pathlib import Path
 
 import pytest
 
+pytestmark = pytest.mark.timeout(10)
+
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "tools"))
 
 from citation_verifier import verify_citation, verify_citations, generate_bibtex
