@@ -1,0 +1,17 @@
+cff-version: 1.2.0
+title: "Sisyphus Academica: The Research Paper Writing Army"
+message: "If you use this software in your research, please cite it."
+type: software
+authors:
+  - family-names: "argahv"
+    given-names: ""
+    website: "https://github.com/argahv"
+repository-code: "https://github.com/argahv/sisyphus-academica"
+abstract: "Self-coordinating swarm of 20+ specialized agents that produces publication-ready research papers with genuine novelty, zero hallucinated citations, and no detectable AI-written patterns."
+keywords:
+  - "research-paper-writing"
+  - "multi-agent"
+  - "llm"
+  - "academic-writing"
+  - "ai"
+license: MIT
