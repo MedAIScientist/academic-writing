@@ -17,7 +17,7 @@ title: Home
 <div class="install-tabs">
   <div class="tab-content">
 
-**Python CLI tools:**
+<p class="demo-label"><strong>Python CLI tools:</strong></p>
 <div class="demo-block">
   <div class="cmd"><span class="prompt">$</span> <span class="input">git clone https://github.com/argahv/sisyphus-academica.git</span></div>
   <div class="cmd"><span class="prompt">$</span> <span class="input">cd sisyphus-academica && pip install -e .</span></div>
@@ -25,14 +25,14 @@ title: Home
   <div class="output">Running pipeline on example topic: 'Transformer Efficiency' ...</div>
 </div>
 
-**Install skills via npx (any agent):**
+<p class="demo-label"><strong>Install skills via npx (any agent):</strong></p>
 <div class="demo-block">
   <div class="cmd"><span class="prompt">$</span> <span class="input">npx skills add argahv/sisyphus-academica -s contrarian</span></div>
   <div class="cmd"><span class="prompt">$</span> <span class="input">npx skills add argahv/novelty-skills -s heretic</span></div>
   <div class="output">Installed to Claude Code, Cursor, Copilot, Hermes Agent, OpenCode</div>
 </div>
 
-**Full paper pipeline (requires OpenCode):**
+<p class="demo-label"><strong>Full pipeline (requires OpenCode):</strong></p>
 <div class="demo-block">
   <div class="cmd"><span class="prompt">$</span> <span class="input">git clone https://github.com/argahv/sisyphus-academica.git && cd sisyphus-academica</span></div>
   <div class="cmd"><span class="prompt">$</span> <span class="input">bash install.sh</span></div>

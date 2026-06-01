@@ -798,6 +798,15 @@ li {
   margin: var(--space-sm) 0;
 }
 
+.demo-label {
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+  margin: var(--space-lg) 0 var(--space-xs) 0;
+}
+
 /* --- Dark Mode --- */
 @media (prefers-color-scheme: dark) {
   :root {
