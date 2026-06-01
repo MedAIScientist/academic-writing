@@ -98,7 +98,7 @@ All 10 must pass before the paper proceeds to formatting.
 
 ## Live Example: SIREN Paper
 
-The pipeline was run to produce a full paper on **Intent-Based Blockchain Execution via Agentic RAG and Swarm Consensus**. The complete output is in `examples/siren-paper/`:
+The pipeline was run to produce a full paper on **Intent-Based Blockchain Execution via Agentic RAG and Swarm Consensus**. The complete output is in [`examples/siren-paper/`](examples/siren-paper/):
 
 | File | Description |
 |------|-------------|
