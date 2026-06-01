@@ -80,3 +80,35 @@ class TestDeduplicatePapers:
         original = papers.copy()
         deduplicate_papers(papers)
         assert papers == original
+
+    def test_fuzzy_dedup_with_threshold(self):
+        papers = [
+            {"title": "Attention Is All You Need", "source": "arxiv"},
+            {"title": "Attention is All you Need", "source": "crossref"},
+        ]
+        result = deduplicate_papers(papers, fuzzy_threshold=0.85)
+        assert len(result) == 1
+
+    def test_fuzzy_keeps_distinct_titles(self):
+        papers = [
+            {"title": "Deep Learning", "source": "arxiv"},
+            {"title": "Reinforcement Learning", "source": "crossref"},
+        ]
+        result = deduplicate_papers(papers, fuzzy_threshold=0.85)
+        assert len(result) == 2
+
+    def test_fuzzy_threshold_zero_disabled(self):
+        papers = [
+            {"title": "A Novel Approach to Neural Machine Translation", "source": "arxiv"},
+            {"title": "A Novel Approach to Neural Machine Translation NIPS 2017", "source": "crossref"},
+        ]
+        result = deduplicate_papers(papers, fuzzy_threshold=0.0)
+        assert len(result) == 2
+
+    def test_fuzzy_trailing_punctuation(self):
+        papers = [
+            {"title": "The Future of AI.", "source": "arxiv"},
+            {"title": "The Future of AI", "source": "crossref"},
+        ]
+        result = deduplicate_papers(papers, fuzzy_threshold=0.85)
+        assert len(result) == 1

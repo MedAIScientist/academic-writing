@@ -5,6 +5,7 @@ Multi-source literature search: arXiv, Semantic Scholar, CrossRef, OpenAlex
 Returns deduplicated, structured paper metadata.
 """
 
+import difflib
 import json
 import time
 import urllib.request
@@ -190,19 +191,42 @@ def search_openalex(query: str, per_page: int = 50) -> List[Dict]:
         return []
 
 
-def deduplicate_papers(all_papers: List[Dict]) -> List[Dict]:
-    """Remove duplicate papers across sources using title similarity."""
-    seen_titles = set()
+def deduplicate_papers(all_papers: List[Dict], fuzzy_threshold: float = 0.0) -> List[Dict]:
+    """Remove duplicate papers across sources using title similarity.
+
+    Uses exact matching on first 80 chars as fast path.
+    When fuzzy_threshold > 0, also checks near-duplicates via difflib.SequenceMatcher.
+    """
+    seen_titles = []
     unique = []
-    
+
     for paper in all_papers:
-        title = paper.get('title', '').lower().strip()
-        # Simple dedup: normalize and check first 80 chars
-        key = title[:80]
-        if key and key not in seen_titles:
-            seen_titles.add(key)
-            unique.append(paper)
-    
+        title = paper.get('title')
+        if not title or not isinstance(title, str):
+            continue
+        normalized = title.lower().strip()
+        if not normalized:
+            continue
+
+        # Fast path: exact prefix match
+        key = normalized[:80]
+        if key in seen_titles:
+            continue
+
+        if fuzzy_threshold > 0.0:
+            # Slow path: fuzzy match against all seen titles
+            is_duplicate = False
+            for seen in seen_titles:
+                ratio = difflib.SequenceMatcher(None, normalized[:80], seen).ratio()
+                if ratio >= fuzzy_threshold:
+                    is_duplicate = True
+                    break
+            if is_duplicate:
+                continue
+
+        seen_titles.append(key)
+        unique.append(paper)
+
     return unique
 
 
@@ -227,12 +251,12 @@ def search_all(query: str) -> Dict:
     results['openalex'] = search_openalex(query)
     print(f"    OpenAlex: {len(results['openalex'])} papers")
     
-    # Merge and deduplicate
+    # Merge and deduplicate (with fuzzy matching at 0.85 threshold)
     all_papers = []
     for source_papers in results.values():
         all_papers.extend(source_papers)
-    
-    unique = deduplicate_papers(all_papers)
+
+    unique = deduplicate_papers(all_papers, fuzzy_threshold=0.85)
     
     return {
         'query': query,
