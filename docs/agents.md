@@ -1,6 +1,6 @@
 ---
+layout: default
 title: Agent Catalog
-nav_order: 4
 ---
 
 # Agent Catalog
@@ -28,46 +28,44 @@ Sisyphus Academica has 20+ agents organized into 5 groups.
 
 ## Novelty Engines
 
+Also available as **standalone portable skills** in the <code>skills/novelty-engines/</code> directory.
+
 | Agent | Approach |
 |-------|----------|
-| **The Contrarian** | Inverts field claims → 10 counter-hypotheses |
-| **The Cross-Pollinator** | Imports solutions from 15 distant fields |
-| **The Assumption Excavator** | Finds unstated assumptions, tests if false |
-| **The Counterfactual Generator** | Rewrites field history without key papers |
-| **The Paradox Sifter** | Cross-references "Limitations" sections for contradictions |
-| **The Heretic** | Generates 50 wild hypotheses from title+abstract alone |
-
-These are also available as **standalone portable skills** in the `skills/novelty-engines/` directory — copy them to `~/.claude/skills/` and use with any agent.
+| **Contrarian** | Inverts field claims &rarr; 10 counter-hypotheses |
+| **Cross-Pollinator** | Imports solutions from 15 distant fields |
+| **Assumption Excavator** | Finds unstated assumptions, tests if false |
+| **Counterfactual Generator** | Rewrites field history without key papers |
+| **Paradox Sifter** | Cross-references Limitations sections for contradictions |
+| **Heretic** | Crown jewel. 50 wild hypotheses from title+abstract alone. |
 
 ## Adversarial Reviewers
 
-| Persona | Focus |
-|---------|-------|
-| Theorist | Formal proofs, mathematical rigor |
-| Empiricist | Experimental design, baselines |
-| Pragmatist | Practical applicability |
-| Skeptic | "Your results are wrong" |
-| Historian | Prior art, citation accuracy |
-| Methodologist | Statistical correctness |
-| Ethicist | Societal implications |
-| Competitor | Novelty relative to existing work |
-| Student | Clarity and accessibility |
-| Dreamer | "What if you went further?" |
+Standalone versions also in <code>skills/reviewers/</code>.
 
-Standalone versions also in `skills/reviewers/`.
+| Persona | Focus | Typical Critique |
+|---------|-------|-----------------|
+| Theorist | Formal proofs, mathematical rigor | "Where's the formal proof?" |
+| Empiricist | Experimental design, baselines | "Your baseline is wrong" |
+| Pragmatist | Practical applicability | "Does this matter in practice?" |
+| Skeptic | Default: results are wrong | "Show me error bars" |
+| Historian | Prior art, citation accuracy | "This was done in 1972" |
+| Methodologist | Statistical methodology | "Your test assumes normality" |
+| Ethicist | Societal implications | "What are the downsides?" |
+| Competitor | Novelty relative to existing work | "Minor mod of our 2023 paper" |
+| Student | Clarity and accessibility | "I don't understand section 3" |
+| Dreamer | "What if you went further?" | "You stopped too early" |
 
 ## Skills (Portable)
 
-The `skills/` directory contains standalone SKILL.md files for 6 novelty engines and 5 reviewer personas. These work with any agent that reads the SKILL.md format (Claude Code, Codex, Cursor, Gemini CLI, etc.).
-
-To use:
+The <code>skills/</code> directory contains standalone SKILL.md files. Copy them to <code>~/.claude/skills/</code> and use with any agent:
 
 ```bash
 cp -r skills/novelty-engines ~/.claude/skills/
 cp -r skills/reviewers ~/.claude/skills/
 ```
 
-Then invoke in any agent:
+Invoke in any agent:
 
 ```
 /contrarian "The claim: 'Attention is all you need'"

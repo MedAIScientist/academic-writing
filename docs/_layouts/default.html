@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="{% if page.description %}{{ page.description }}{% else %}{{ site.description }}{% endif %}">
+  <title>{% if page.title %}{{ page.title }} · {% endif %}{{ site.title }}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ '/assets/css/main.css' | relative_url }}">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏛️</text></svg>">
+</head>
+<body>
+  <nav class="top-nav">
+    <div class="nav-inner">
+      <a href="{{ '/' | relative_url }}" class="nav-brand">
+        <span class="brand-mark">S</span>
+        <span class="brand-text">Sisyphus Academica</span>
+      </a>
+      <div class="nav-links">
+        <a href="{{ '/' | relative_url }}" class="nav-link">Home</a>
+        <a href="{{ '/guide/installation' | relative_url }}" class="nav-link">Install</a>
+        <a href="{{ '/architecture' | relative_url }}" class="nav-link">Architecture</a>
+        <a href="{{ '/novelty-engines' | relative_url }}" class="nav-link">Novelty</a>
+        <a href="{{ '/faq' | relative_url }}" class="nav-link">FAQ</a>
+        <a href="https://github.com/argahv/sisyphus-academica" class="btn-primary btn-small" target="_blank">GitHub</a>
+      </div>
+    </div>
+  </nav>
+
+  <main>
+    {{ content }}
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+      <div class="footer-col">
+        <h4>Product</h4>
+        <a href="{{ '/' | relative_url }}">Home</a>
+        <a href="{{ '/architecture' | relative_url }}">Architecture</a>
+        <a href="{{ '/pipeline' | relative_url }}">Pipeline</a>
+        <a href="{{ '/novelty-engines' | relative_url }}">Novelty Engines</a>
+      </div>
+      <div class="footer-col">
+        <h4>Docs</h4>
+        <a href="{{ '/guide/installation' | relative_url }}">Installation</a>
+        <a href="{{ '/agents' | relative_url }}">Agents</a>
+        <a href="{{ '/reviewers' | relative_url }}">Reviewers</a>
+        <a href="{{ '/faq' | relative_url }}">FAQ</a>
+      </div>
+      <div class="footer-col">
+        <h4>Community</h4>
+        <a href="https://github.com/argahv/sisyphus-academica">GitHub</a>
+        <a href="https://github.com/argahv/sisyphus-academica/issues">Issues</a>
+        <a href="https://github.com/argahv/sisyphus-academica/discussions">Discussions</a>
+        <a href="https://github.com/argahv/sisyphus-academica/releases">Releases</a>
+      </div>
+      <div class="footer-col">
+        <h4>Related</h4>
+        <a href="https://github.com/argahv/novelty-skills">Novelty Skills</a>
+        <a href="{{ '/tools' | relative_url }}">CLI Reference</a>
+      </div>
+      <div class="footer-col">
+        <h4>License</h4>
+        <p class="caption">MIT &mdash; free to use, modify, and distribute.</p>
+        <p class="caption">&copy; {{ site.time | date: '%Y' }} argahv</p>
+      </div>
+    </div>
+  </footer>
+</body>
+</html>
