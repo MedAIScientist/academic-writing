@@ -91,37 +91,37 @@ Invoke directly in your agent:
 
 <div class="engine-grid">
   <div class="engine-card">
-    <div class="engine-icon">🔄</div>
+    <div class="engine-icon">C</div>
     <h3>Contrarian</h3>
     <p class="tagline">Invert every well-established claim</p>
     <p>Generates 10 counter-hypotheses by inverting claims across 6 axes: polarity, direction, scope, relevance, existence, priority.</p>
   </div>
   <div class="engine-card">
-    <div class="engine-icon">🦋</div>
+    <div class="engine-icon">X</div>
     <h3>Cross-Pollinator</h3>
     <p class="tagline">Solutions from 15 distant fields</p>
     <p>Maps concepts from astrodynamics onto biology, from monetary policy onto ML. Extract the mechanism, not the metaphor.</p>
   </div>
   <div class="engine-card">
-    <div class="engine-icon">🔍</div>
+    <div class="engine-icon">A</div>
     <h3>Assumption Excavator</h3>
     <p class="tagline">Find what everyone assumed</p>
     <p>Surfaces resource, behavioral, environmental, temporal, and causal assumptions. Tests what breaks if each is false.</p>
   </div>
   <div class="engine-card">
-    <div class="engine-icon">⏳</div>
+    <div class="engine-icon">G</div>
     <h3>Counterfactual Generator</h3>
     <p class="tagline">The field without its key papers</p>
     <p>Removes the most-cited papers from history. Traces ripple effects. Finds suppressed alternatives that deserve a second look.</p>
   </div>
   <div class="engine-card">
-    <div class="engine-icon">🎭</div>
+    <div class="engine-icon">P</div>
     <h3>Paradox Sifter</h3>
     <p class="tagline">Contradictions everyone ignores</p>
     <p>Cross-references Limitations sections across papers. Finds direct contradictions, mutual ignorance, hidden dependencies, and escalations.</p>
   </div>
   <div class="engine-card">
-    <div class="engine-icon">🔥</div>
+    <div class="engine-icon">H</div>
     <h3>Heretic</h3>
     <p class="tagline">50 wild hypotheses from any abstract</p>
     <p>The crown jewel. Generates 50 hypotheses from title+abstract alone, scores against the actual paper, finds the haunting idea.</p>

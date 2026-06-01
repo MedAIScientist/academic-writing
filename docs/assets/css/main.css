@@ -39,8 +39,8 @@
   --timeline-edit: #c0a8dd;
   --timeline-done: #c08532;
 
-  /* Typography */
-  --font-display: 'Inter', system-ui, 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  /* Typography — Geist (editorial, not overused) + JetBrains Mono */
+  --font-display: 'Geist', 'Inter', system-ui, 'Helvetica Neue', Helvetica, Arial, sans-serif;
   --font-code: 'JetBrains Mono', 'Fira Code', 'SF Mono', Monaco, monospace;
 
   /* Spacing */
@@ -571,8 +571,18 @@ li {
 }
 
 .engine-card .engine-icon {
-  font-size: 24px;
-  margin-bottom: var(--space-xs);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  background: var(--surface-strong);
+  border-radius: var(--radius-pill);
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+  margin-bottom: var(--space-sm);
 }
 
 .engine-card h3 {
@@ -786,6 +796,33 @@ li {
 
 .tab-content .demo-block {
   margin: var(--space-sm) 0;
+}
+
+/* --- Dark Mode --- */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --canvas: #1a1a18;
+    --canvas-soft: #22221e;
+    --surface-card: #2a2a26;
+    --surface-strong: #3a3a36;
+    --ink: #e8e6e0;
+    --body: #b0aea8;
+    --body-strong: #e8e6e0;
+    --muted: #8a8882;
+    --muted-soft: #6a6862;
+    --hairline: #3a3a36;
+    --hairline-soft: #32322e;
+    --hairline-strong: #4a4a46;
+    --primary: #f06a10;
+    --primary-active: #d85a00;
+    --on-primary: #0a0a08;
+    --success: #2aac78;
+    --timeline-thinking: #7a5840;
+    --timeline-grep: #3a6a3e;
+    --timeline-read: #3a5a80;
+    --timeline-edit: #5a4870;
+    --timeline-done: #a07a2a;
+  }
 }
 
 /* --- Utility --- */
