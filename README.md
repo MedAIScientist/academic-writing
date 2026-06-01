@@ -51,6 +51,14 @@ cp -r skills/novelty-engines ~/.claude/skills/
 cp -r skills/reviewers ~/.claude/skills/
 ```
 
+Or install any skill with a single command:
+
+```bash
+npx skills add argahv/sisyphus-academica          # Browse and select interactively
+npx skills add argahv/sisyphus-academica -s '*'   # Install all 17 skills
+npx skills add argahv/sisyphus-academica -s contrarian  # Install one skill
+```
+
 Then invoke directly in your agent:
 
 ```
@@ -59,7 +67,7 @@ Then invoke directly in your agent:
 /heretic "Paper: 'Scaling Laws for Neural Language Models'"
 ```
 
-**6 novelty engines + 5 reviewer personas + academic humanizer = 12 portable skills** ready to use in any agent.
+**6 novelty engines + 10 reviewers + academic humanizer = 17 portable skills**.
 
 ---
 
