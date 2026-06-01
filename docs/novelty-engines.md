@@ -47,7 +47,7 @@ The novelty engines are the core differentiator. Each thinks from a completely d
     <div class="engine-icon">H</div>
     <h3>Heretic (Crown Jewel)</h3>
     <p class="tagline">"What if I read only the title and abstract, then generated 50 wild guesses?"</p>
-    <p>Reads ONLY the title and abstract. Generates 50 wild hypotheses in 5 categories (methodological, theoretical, empirical, foundational, wild cards). Then reads the full paper and scores each hypothesis. The <strong>Haunting Idea</strong> is the one the authors should have explored but didn't &mdash;ndash; novelty gap &ge; 8, tractability &ge; 5, impact &ge; 7, surprise &ge; 8.</p>
+    <p>Reads ONLY the title and abstract. Generates 50 wild hypotheses in 5 categories (methodological, theoretical, empirical, foundational, wild cards). Then reads the full paper and scores each hypothesis. The <strong>Haunting Idea</strong> is the one the authors should have explored but didn't &ndash; novelty gap &ge; 8, tractability &ge; 5, impact &ge; 7, surprise &ge; 8.</p>
   </div>
 </div>
 
