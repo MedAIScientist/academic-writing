@@ -1,9 +1,6 @@
 #!/usr/bin/env python3
-"""
-Sisyphus Academica — Interactive configuration.
-"""
+"""Sisyphus Academica — Interactive configuration."""
 
-import os
 import shutil
 from pathlib import Path
 

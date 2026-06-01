@@ -1,11 +1,6 @@
 #!/usr/bin/env python3
-"""
-Sisyphus Academica — Demo Mode.
-Runs a mini pipeline demonstration with no API keys required.
-Shows what the system can do using built-in example data.
-"""
+"""Sisyphus Academica — Demo Mode. No API keys required."""
 
-import json
 import textwrap
 
 

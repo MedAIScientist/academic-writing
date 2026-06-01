@@ -28,7 +28,9 @@ ARXIV_NS = {
 def _fetch_json(url: str, timeout: int = 30) -> Optional[Dict]:
     """Fetch JSON from a URL with standard headers."""
     try:
-        req = urllib.request.Request(url, headers={'User-Agent': 'SisyphusAcademica/1.0'})
+        req = urllib.request.Request(
+            url, headers={
+                'User-Agent': 'SisyphusAcademica/1.0'})
         with urllib.request.urlopen(req, timeout=timeout) as resp:
             return json.loads(resp.read().decode('utf-8'))
     except Exception as e:
@@ -39,7 +41,9 @@ def _fetch_json(url: str, timeout: int = 30) -> Optional[Dict]:
 def _fetch_text(url: str, timeout: int = 30) -> Optional[str]:
     """Fetch text from a URL."""
     try:
-        req = urllib.request.Request(url, headers={'User-Agent': 'SisyphusAcademica/1.0'})
+        req = urllib.request.Request(
+            url, headers={
+                'User-Agent': 'SisyphusAcademica/1.0'})
         with urllib.request.urlopen(req, timeout=timeout) as resp:
             return resp.read().decode('utf-8')
     except Exception as e:
@@ -57,15 +61,17 @@ def search_arxiv(query: str, max_results: int = 200) -> List[Dict]:
         'sortOrder': 'descending'
     })
     url = f"{ARXIV_API}?{params}"
-    
+
     try:
-        req = urllib.request.Request(url, headers={'User-Agent': 'SisyphusAcademica/1.0'})
+        req = urllib.request.Request(
+            url, headers={
+                'User-Agent': 'SisyphusAcademica/1.0'})
         with urllib.request.urlopen(req, timeout=30) as resp:
             xml_data = resp.read().decode('utf-8')
-        
+
         root = ET.fromstring(xml_data)
         papers = []
-        
+
         for entry in root.findall('atom:entry', ARXIV_NS):
             paper = {
                 'title': ' '.join((entry.find('atom:title', ARXIV_NS).text or '').split()),
@@ -76,26 +82,28 @@ def search_arxiv(query: str, max_results: int = 200) -> List[Dict]:
                 'categories': [],
                 'source': 'arxiv'
             }
-            
+
             for author in entry.findall('atom:author', ARXIV_NS):
                 name = author.find('atom:name', ARXIV_NS)
                 if name is not None:
                     paper['authors'].append(name.text)
-            
+
             for cat in entry.findall('atom:category', ARXIV_NS):
                 term = cat.get('term', '')
                 if term:
                     paper['categories'].append(term)
-            
+
             # Check for DOI
             for link in entry.findall('atom:link', ARXIV_NS):
                 if link.get('title') == 'doi':
-                    paper['doi'] = link.get('href', '').replace('http://dx.doi.org/', '')
-            
+                    paper['doi'] = link.get(
+                        'href', '').replace(
+                        'http://dx.doi.org/', '')
+
             papers.append(paper)
-        
+
         return papers
-    
+
     except Exception as e:
         print(f"  arXiv search error: {e}")
         return []
@@ -109,12 +117,14 @@ def search_semantic_scholar(query: str, limit: int = 100) -> List[Dict]:
         'fields': 'title,authors,year,abstract,citationCount,externalIds,publicationVenue'
     })
     url = f"{SEMANTIC_SCHOLAR_API}/search?{params}"
-    
+
     try:
-        req = urllib.request.Request(url, headers={'User-Agent': 'SisyphusAcademica/1.0'})
+        req = urllib.request.Request(
+            url, headers={
+                'User-Agent': 'SisyphusAcademica/1.0'})
         with urllib.request.urlopen(req, timeout=30) as resp:
             data = json.loads(resp.read().decode('utf-8'))
-        
+
         papers = []
         for item in data.get('data', []):
             paper = {
@@ -128,9 +138,9 @@ def search_semantic_scholar(query: str, limit: int = 100) -> List[Dict]:
                 'source': 'semantic_scholar'
             }
             papers.append(paper)
-        
+
         return papers
-    
+
     except Exception as e:
         print(f"  Semantic Scholar search error: {e}")
         return []
@@ -144,7 +154,7 @@ def search_crossref(query: str, rows: int = 50) -> List[Dict]:
         'select': 'DOI,title,author,abstract,container-title,volume,page,ISSN,URL,published-print'
     })
     url = f"{CROSSREF_API}?{params}"
-    
+
     try:
         req = urllib.request.Request(
             url,
@@ -155,7 +165,7 @@ def search_crossref(query: str, rows: int = 50) -> List[Dict]:
         )
         with urllib.request.urlopen(req, timeout=30) as resp:
             data = json.loads(resp.read().decode('utf-8'))
-        
+
         papers = []
         for item in data.get('message', {}).get('items', []):
             paper = {
@@ -170,9 +180,9 @@ def search_crossref(query: str, rows: int = 50) -> List[Dict]:
                 'source': 'crossref'
             }
             papers.append(paper)
-        
+
         return papers
-    
+
     except Exception as e:
         print(f"  CrossRef search error: {e}")
         return []
@@ -186,12 +196,14 @@ def search_openalex(query: str, per_page: int = 50) -> List[Dict]:
         'sort': 'cited_by_count:desc'
     })
     url = f"{OPENALEX_API}?{params}"
-    
+
     try:
-        req = urllib.request.Request(url, headers={'User-Agent': 'SisyphusAcademica/1.0'})
+        req = urllib.request.Request(
+            url, headers={
+                'User-Agent': 'SisyphusAcademica/1.0'})
         with urllib.request.urlopen(req, timeout=30) as resp:
             data = json.loads(resp.read().decode('utf-8'))
-        
+
         papers = []
         for item in data.get('results', []):
             paper = {
@@ -205,9 +217,9 @@ def search_openalex(query: str, per_page: int = 50) -> List[Dict]:
                 'source': 'openalex'
             }
             papers.append(paper)
-        
+
         return papers
-    
+
     except Exception as e:
         print(f"  OpenAlex search error: {e}")
         return []
@@ -217,7 +229,7 @@ def deduplicate_papers(all_papers: List[Dict]) -> List[Dict]:
     """Remove duplicate papers across sources using title similarity."""
     seen_titles = set()
     unique = []
-    
+
     for paper in all_papers:
         title = paper.get('title', '').lower().strip()
         # Simple dedup: normalize and check first 80 chars
@@ -225,16 +237,16 @@ def deduplicate_papers(all_papers: List[Dict]) -> List[Dict]:
         if key and key not in seen_titles:
             seen_titles.add(key)
             unique.append(paper)
-    
+
     return unique
 
 
 def search_all(query: str, parallel: bool = True) -> Dict:
     """Search all sources, optionally in parallel via ThreadPoolExecutor."""
     results = {}
-    
+
     print(f"  Searching all sources for: {query}")
-    
+
     if parallel:
         sources = {
             'arxiv': lambda: search_arxiv(query),
@@ -256,25 +268,26 @@ def search_all(query: str, parallel: bool = True) -> Dict:
         results['arxiv'] = search_arxiv(query)
         time.sleep(3)
         print(f"    arXiv: {len(results['arxiv'])} papers")
-        
+
         results['semantic_scholar'] = search_semantic_scholar(query)
         time.sleep(1)
-        print(f"    Semantic Scholar: {len(results['semantic_scholar'])} papers")
-        
+        print(
+            f"    Semantic Scholar: {len(results['semantic_scholar'])} papers")
+
         results['crossref'] = search_crossref(query)
         time.sleep(1)
         print(f"    CrossRef: {len(results['crossref'])} papers")
-        
+
         results['openalex'] = search_openalex(query)
         print(f"    OpenAlex: {len(results['openalex'])} papers")
-    
+
     # Merge and deduplicate
     all_papers = []
     for source_papers in results.values():
         all_papers.extend(source_papers)
-    
+
     unique = deduplicate_papers(all_papers)
-    
+
     return {
         'query': query,
         'total_raw': len(all_papers),
@@ -286,13 +299,14 @@ def search_all(query: str, parallel: bool = True) -> Dict:
 
 def main():
     import argparse
-    parser = argparse.ArgumentParser(description='Sisyphus Academica Literature Client')
+    parser = argparse.ArgumentParser(
+        description='Sisyphus Academica Literature Client')
     parser.add_argument('query', help='Search query')
     parser.add_argument('--output', '-o', help='Output JSON file')
     args = parser.parse_args()
-    
+
     results = search_all(args.query)
-    
+
     output = json.dumps(results, indent=2)
     if args.output:
         with open(args.output, 'w') as f:

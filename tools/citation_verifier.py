@@ -9,7 +9,7 @@ import json
 import urllib.request
 import urllib.parse
 import re
-from typing import Dict, List, Tuple
+from typing import Dict
 
 
 SEMANTIC_SCHOLAR_API = "https://api.semanticscholar.org/graph/v1/paper"
@@ -25,13 +25,15 @@ def search_semantic_scholar(title: str) -> Dict:
         'fields': 'title,authors,year,abstract,citationCount,externalIds'
     })
     url = f"{SEMANTIC_SCHOLAR_API}/search?{params}"
-    
+
     try:
-        req = urllib.request.Request(url, headers={'User-Agent': 'SisyphusAcademica/1.0'})
+        req = urllib.request.Request(
+            url, headers={
+                'User-Agent': 'SisyphusAcademica/1.0'})
         with urllib.request.urlopen(req, timeout=15) as resp:
             data = json.loads(resp.read().decode('utf-8'))
         return data.get('data', [{}])[0] if data.get('data') else {}
-    except:
+    except BaseException:
         return {}
 
 
@@ -43,7 +45,7 @@ def search_crossref(title: str) -> Dict:
         'select': 'DOI,title,author,container-title'
     })
     url = f"{CROSSREF_API}?{params}"
-    
+
     try:
         req = urllib.request.Request(
             url,
@@ -56,7 +58,7 @@ def search_crossref(title: str) -> Dict:
             data = json.loads(resp.read().decode('utf-8'))
         items = data.get('message', {}).get('items', [])
         return items[0] if items else {}
-    except:
+    except BaseException:
         return {}
 
 
@@ -70,10 +72,10 @@ def verify_citation(citation_key: str, claim: str) -> Dict:
         'verified': False,
         'issues': []
     }
-    
+
     # Extract paper title from citation key or claim
     # In practice, the claim text contains the paper reference
-    
+
     # Search Semantic Scholar
     ss_result = search_semantic_scholar(claim[:100])
     if ss_result:
@@ -83,7 +85,7 @@ def verify_citation(citation_key: str, claim: str) -> Dict:
             'citation_count': ss_result.get('citationCount', 0),
             'external_ids': ss_result.get('externalIds', {})
         }
-    
+
     # Search CrossRef
     cr_result = search_crossref(claim[:100])
     if cr_result:
@@ -92,28 +94,31 @@ def verify_citation(citation_key: str, claim: str) -> Dict:
             'title': ' '.join(cr_result.get('title', [''])),
             'container': cr_result.get('container-title', [''])[0] if cr_result.get('container-title') else ''
         }
-    
+
     # Determine verification status
     if result['semantic_scholar'] and result['crossref']:
         # Both found the paper
         ss_title = (result['semantic_scholar'].get('title') or '').lower()
         cr_title = (result['crossref'].get('title') or '').lower()
-        if ss_title and cr_title and (ss_title[:50] == cr_title[:50] or 
-                                       ss_title[:30] in cr_title or cr_title[:30] in ss_title):
+        if (ss_title and cr_title and
+                (ss_title[:50] == cr_title[:50] or
+                 ss_title[:30] in cr_title or
+                 cr_title[:30] in ss_title)):
             result['verified'] = True
     elif result['semantic_scholar'] or result['crossref']:
         result['verified'] = True
         result['issues'].append("Found in only 1 source — weak verification")
     else:
-        result['issues'].append("Paper not found in any source — may be hallucinated")
-    
+        result['issues'].append(
+            "Paper not found in any source — may be hallucinated")
+
     return result
 
 
 def verify_citations(findings: Dict) -> Dict:
     """Verify all citations in a paper findings file."""
     citations = []
-    
+
     # Extract citations from text
     if 'paper' in findings:
         text = findings['paper']
@@ -121,15 +126,15 @@ def verify_citations(findings: Dict) -> Dict:
         citation_patterns = re.findall(r'\[([^\]]+)\]', text)
         for cp in citation_patterns:
             citations.append({'key': cp, 'claim': ''})
-    
+
     results = []
     for citation in citations:
         result = verify_citation(citation['key'], citation['claim'])
         results.append(result)
-    
+
     verified_count = sum(1 for r in results if r['verified'])
     hallucinated = [r for r in results if not r['verified']]
-    
+
     return {
         'total_citations': len(results),
         'verified': verified_count,
@@ -145,13 +150,13 @@ def generate_bibtex(paper: Dict) -> str:
     """Generate BibTeX entry from verified paper metadata."""
     if not paper.get('doi'):
         return ''
-    
+
     doi = paper['doi']
     author_field = 'Author, A.'
     title_field = paper.get('title', 'Untitled')
     year = paper.get('year', 'n.d.')
     key = f"{author_field.split(',')[0]}{year}"
-    
+
     bibtex = f"""@article{{{key},
   author = {{{author_field}}},
   title = {{{title_field}}},
@@ -163,22 +168,30 @@ def generate_bibtex(paper: Dict) -> str:
 
 def main():
     import argparse
-    parser = argparse.ArgumentParser(description='Sisyphus Academica Citation Verifier')
-    parser.add_argument('--findings', '-f', required=True, help='Findings JSON file')
+    parser = argparse.ArgumentParser(
+        description='Sisyphus Academica Citation Verifier')
+    parser.add_argument(
+        '--findings',
+        '-f',
+        required=True,
+        help='Findings JSON file')
     parser.add_argument('--output', '-o', help='Output file')
-    parser.add_argument('--citation', '-c', help='Verify a single citation (overrides --findings)')
+    parser.add_argument(
+        '--citation',
+        '-c',
+        help='Verify a single citation (overrides --findings)')
     args = parser.parse_args()
-    
+
     if args.citation:
         result = verify_citation('manual', args.citation)
         print(json.dumps(result, indent=2))
         return
-    
+
     with open(args.findings) as f:
         findings = json.load(f)
-    
+
     result = verify_citations(findings)
-    
+
     output = json.dumps(result, indent=2)
     if args.output:
         with open(args.output, 'w') as f:
@@ -186,14 +199,17 @@ def main():
         print(f"Verification results written to {args.output}")
     else:
         print(output)
-    
+
     if result['blocked']:
-        print(f"\n⚠ BLOCKED: {result['hallucinated_count']} unverifiable citations found")
+        print(
+            f"\n⚠ BLOCKED: {
+                result['hallucinated_count']} unverifiable citations found")
         for c in result['hallucinated_citations']:
             print(f"  - {c}")
         exit(1)
     else:
-        print(f"\n✓ All {result['verified']}/{result['total_citations']} citations verified")
+        print(
+            f"\n✓ All {result['verified']}/{result['total_citations']} citations verified")
         exit(0)
 
 
