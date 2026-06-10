@@ -316,20 +316,47 @@ def verify_citations(
     }
 
 
-def generate_bibtex(paper: Dict[str, Any]) -> str:
-    """Generate a minimal BibTeX entry from a paper dict.
+def format_authors_for_bibtex(authors) -> str:
+    """Format author list into BibTeX 'Last, I. and ...' string.
 
-    Expected fields: doi (required), title, year.
+    Handles list of strings (['John Smith']) or dicts ([{'name': 'John Smith'}]).
+    Falls back to 'Author, A.' on empty/invalid input.
+    """
+    if not isinstance(authors, (list, tuple)) or not authors:
+        return 'Author, A.'
+
+    names = []
+    for a in authors:
+        name = a.strip() if isinstance(a, str) else (a.get('name', '').strip() if isinstance(a, dict) else '')
+        if not name:
+            continue
+        parts = name.split()
+        if len(parts) == 1:
+            names.append(parts[0])
+        else:
+            last = parts[-1]
+            initials = ' '.join(p[0] + '.' for p in parts[:-1] if p)
+            names.append(f'{last}, {initials}')
+    return ' and '.join(names) if names else 'Author, A.'
+
+
+def generate_bibtex(paper: Dict[str, Any]) -> str:
+    """Generate a BibTeX entry from verified paper metadata.
+
+    Expected fields: doi (required), title, year, authors (optional).
     """
     doi = (paper.get('doi') or '').strip()
     if not doi:
         return ''
 
+    author_field = format_authors_for_bibtex(paper.get('authors', []))
     title = (paper.get('title') or 'Untitled').replace('{', '').replace('}', '')
     year = paper.get('year') or 'n.d.'
-    key_seed = re.sub(r'[^a-z0-9]+', '', doi.lower())[:20] or 'citation'
+    first_author = author_field.split(',')[0].split(' and ')[0].strip()
+    key = f"{first_author}{year}"
     return (
-        f"@article{{{key_seed},\n"
+        f"@article{{{key},\n"
+        f"  author = {{{author_field}}},\n"
         f"  title={{{title}}},\n"
         f"  year={{{year}}},\n"
         f"  doi={{{doi}}}\n"
