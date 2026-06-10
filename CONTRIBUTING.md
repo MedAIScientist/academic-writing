@@ -4,21 +4,26 @@ First off — thanks for being here. This project needs people who can write, re
 
 ## Table of Contents
 
-- [Code of Conduct](#code-of-conduct)
-- [What Kind of Contributions We Need](#what-kind-of-contributions-we-need)
-- [Getting Started](#getting-started)
-- [Development Setup](#development-setup)
-- [Project Structure](#project-structure)
-- [How to Contribute](#how-to-contribute)
-  - [Adding a Venue Template](#adding-a-venue-template)
-  - [Adding a Novelty Engine](#adding-a-novelty-engine)
-  - [Adding a Reviewer Persona](#adding-a-reviewer-persona)
-  - [Improving Python Tools](#improving-python-tools)
-  - [Improving Agent Prompts](#improving-agent-prompts)
-- [Testing](#testing)
-- [Code Style](#code-style)
-- [Pull Request Process](#pull-request-process)
-- [The Quality Gates](#the-quality-gates)
+- [Contributing to Sisyphus Academica](#contributing-to-sisyphus-academica)
+  - [Table of Contents](#table-of-contents)
+  - [Code of Conduct](#code-of-conduct)
+  - [What Kind of Contributions We Need](#what-kind-of-contributions-we-need)
+  - [Getting Started](#getting-started)
+  - [Development Setup](#development-setup)
+    - [Minimal (for tools/tests/docs)](#minimal-for-toolstestsdocs)
+    - [Full (for running the pipeline)](#full-for-running-the-pipeline)
+    - [Docker (for LaTeX compilation)](#docker-for-latex-compilation)
+  - [Project Structure](#project-structure)
+  - [How to Contribute](#how-to-contribute)
+    - [Adding a Venue Template](#adding-a-venue-template)
+    - [Adding a Novelty Engine](#adding-a-novelty-engine)
+    - [Adding a Reviewer Persona](#adding-a-reviewer-persona)
+    - [Improving Python Tools](#improving-python-tools)
+    - [Improving Agent Prompts](#improving-agent-prompts)
+  - [Testing](#testing)
+  - [Code Style](#code-style)
+  - [Pull Request Process](#pull-request-process)
+  - [The Quality Gates](#the-quality-gates)
 
 ## Code of Conduct
 
@@ -149,7 +154,7 @@ Novelty engines are the heart of the system. Each is a single markdown file.
    permission:
      "*": deny
      read: { "*": allow }
-     write: { /root/sisyphus-academica/out/papers/*: allow }
+     write: { ./out/papers/*: allow }
      bash: deny
      webfetch: allow
      task: deny
