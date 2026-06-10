@@ -29,6 +29,9 @@ ARXIV_NS = {
     'arxiv': 'http://arxiv.org/schemas/atom'
 }
 
+MAX_PER_SOURCE = 2000
+PAGE_DELAY = 1.0
+
 DOMAIN_PROFILES: Dict[str, Dict[str, float]] = {
     'general': {
         'citation_weight': 1.0,
@@ -124,6 +127,72 @@ def _request_text(url: str, headers: Dict[str, str], timeout: int = 30) -> str:
     raise RuntimeError(f"request failed for {url}: {last_error}")
 
 
+def _parse_arxiv_entry(entry) -> Dict[str, Any]:
+    """Parse a single arXiv Atom entry element into a paper dict."""
+    paper: Dict[str, Any] = {
+        'title': ' '.join((entry.find('atom:title', ARXIV_NS).text or '').split()),
+        'summary': (entry.find('atom:summary', ARXIV_NS).text or '').strip(),
+        'published': entry.find('atom:published', ARXIV_NS).text or '',
+        'arxiv_id': entry.find('atom:id', ARXIV_NS).text or '',
+        'authors': [],
+        'categories': [],
+        'source': 'arxiv',
+    }
+    paper['year'] = _extract_year(paper['published'])
+    for author in entry.findall('atom:author', ARXIV_NS):
+        name = author.find('atom:name', ARXIV_NS)
+        if name is not None and name.text:
+            paper['authors'].append(name.text)
+    for cat in entry.findall('atom:category', ARXIV_NS):
+        term = cat.get('term', '')
+        if term:
+            paper['categories'].append(term)
+    for link in entry.findall('atom:link', ARXIV_NS):
+        if link.get('title') == 'doi':
+            paper['doi'] = link.get('href', '').replace('http://dx.doi.org/', '')
+    return paper
+
+
+def _build_ss_paper(item: Dict[str, Any]) -> Dict[str, Any]:
+    return {
+        'title': item.get('title', ''),
+        'year': item.get('year', ''),
+        'abstract': item.get('abstract', ''),
+        'citation_count': item.get('citationCount', 0),
+        'authors': [a.get('name', '') for a in item.get('authors', [])],
+        'external_ids': item.get('externalIds', {}),
+        'venue': item.get('publicationVenue', {}).get('name', ''),
+        'source': 'semantic_scholar',
+    }
+
+
+def _build_cr_paper(item: Dict[str, Any]) -> Dict[str, Any]:
+    return {
+        'title': ' '.join(item.get('title', [''])),
+        'doi': item.get('DOI', ''),
+        'authors': [a.get('family', '') for a in item.get('author', []) if a.get('family')],
+        'abstract': item.get('abstract', ''),
+        'journal': item.get('container-title', [''])[0] if item.get('container-title') else '',
+        'volume': item.get('volume', ''),
+        'pages': item.get('page', ''),
+        'year': _crossref_year(item),
+        'source': 'crossref',
+    }
+
+
+def _build_oa_paper(item: Dict[str, Any]) -> Dict[str, Any]:
+    return {
+        'title': item.get('title', ''),
+        'doi': item.get('doi', ''),
+        'cited_by_count': item.get('cited_by_count', 0),
+        'authors': [a.get('author', {}).get('display_name', '') for a in item.get('authorships', [])],
+        'open_access': item.get('open_access', {}).get('is_oa', False),
+        'concepts': [c.get('display_name', '') for c in item.get('concepts', [])[:5]],
+        'year': item.get('publication_year', ''),
+        'source': 'openalex',
+    }
+
+
 def _normalize_title(text: str) -> str:
     normalized = re.sub(r'[^a-z0-9 ]+', ' ', (text or '').lower())
     return ' '.join(normalized.split())
@@ -202,178 +271,157 @@ def _score_paper(
     return citation_score + recency_score + oa_bonus
 
 
-def search_arxiv(query: str, max_results: int = 200) -> List[Dict[str, Any]]:
-    """Search arXiv via REST API. Returns list of paper dicts."""
-    params = urllib.parse.urlencode({
-        'search_query': f'all:{query}',
-        'start': 0,
-        'max_results': min(max_results, 200),
-        'sortBy': 'relevance',
-        'sortOrder': 'descending'
-    })
-    url = f"{ARXIV_API}?{params}"
+def search_arxiv(query: str, max_results: int = 500) -> List[Dict[str, Any]]:
+    """Search arXiv with pagination (200 entries per page via 'start' offset)."""
+    effective_max = min(max_results, MAX_PER_SOURCE)
+    all_papers: List[Dict[str, Any]] = []
+    start = 0
 
-    try:
-        xml_data = _request_text(url, headers={'User-Agent': 'MedAI/1.1'})
-        root = ET.fromstring(xml_data)
-        papers = []
+    while len(all_papers) < effective_max:
+        remaining = effective_max - len(all_papers)
+        fetch = min(200, remaining)
+        params = urllib.parse.urlencode({
+            'search_query': f'all:{query}',
+            'start': start,
+            'max_results': fetch,
+            'sortBy': 'relevance',
+            'sortOrder': 'descending'
+        })
+        url = f"{ARXIV_API}?{params}"
+        try:
+            xml_data = _request_text(url, headers={'User-Agent': 'MedAI/1.1'})
+            root = ET.fromstring(xml_data)
+        except Exception as e:
+            print(f"  arXiv search error: {e}")
+            break
+        entries = root.findall('atom:entry', ARXIV_NS)
+        if not entries:
+            break
+        for entry in entries:
+            all_papers.append(_parse_arxiv_entry(entry))
+        if len(entries) < fetch:
+            break
+        start += len(entries)
+        time.sleep(3)  # arXiv rate limit: ~1 req/3s
 
-        for entry in root.findall('atom:entry', ARXIV_NS):
-            paper = {
-                'title': ' '.join((entry.find('atom:title', ARXIV_NS).text or '').split()),
-                'summary': (entry.find('atom:summary', ARXIV_NS).text or '').strip(),
-                'published': entry.find('atom:published', ARXIV_NS).text or '',
-                'arxiv_id': entry.find('atom:id', ARXIV_NS).text or '',
-                'authors': [],
-                'categories': [],
-                'year': _extract_year(entry.find('atom:published', ARXIV_NS).text or ''),
-                'source': 'arxiv'
-            }
-
-            for author in entry.findall('atom:author', ARXIV_NS):
-                name = author.find('atom:name', ARXIV_NS)
-                if name is not None:
-                    paper['authors'].append(name.text)
-
-            for cat in entry.findall('atom:category', ARXIV_NS):
-                term = cat.get('term', '')
-                if term:
-                    paper['categories'].append(term)
-
-            # Check for DOI
-            for link in entry.findall('atom:link', ARXIV_NS):
-                if link.get('title') == 'doi':
-                    paper['doi'] = link.get('href', '').replace('http://dx.doi.org/', '')
-
-            papers.append(paper)
-
-        return papers
-
-    except Exception as e:
-        print(f"  arXiv search error: {e}")
-        return []
+    return all_papers
 
 
 def search_semantic_scholar(
     query: str,
     api_config: APIConfig,
-    limit: int = 100,
+    limit: int = 500,
 ) -> List[Dict[str, Any]]:
-    """Search Semantic Scholar. Returns papers with citation counts."""
-    params = urllib.parse.urlencode({
-        'query': query,
-        'limit': min(limit, 100),
-        'fields': 'title,authors,year,abstract,citationCount,externalIds,publicationVenue'
-    })
-    url = f"{SEMANTIC_SCHOLAR_API}/search?{params}"
+    """Search Semantic Scholar with pagination (100 per page via 'offset')."""
+    effective_max = min(limit, MAX_PER_SOURCE)
+    all_papers: List[Dict[str, Any]] = []
+    offset = 0
+    headers = {'User-Agent': 'MedAI/1.1'}
+    if api_config.semantic_scholar_api_key:
+        headers['x-api-key'] = api_config.semantic_scholar_api_key
 
-    try:
-        headers = {'User-Agent': 'MedAI/1.1'}
-        if api_config.semantic_scholar_api_key:
-            headers['x-api-key'] = api_config.semantic_scholar_api_key
-        data = _request_json(url, headers=headers)
+    while len(all_papers) < effective_max:
+        remaining = effective_max - len(all_papers)
+        fetch = min(100, remaining)
+        params = urllib.parse.urlencode({
+            'query': query,
+            'limit': fetch,
+            'offset': offset,
+            'fields': 'title,authors,year,abstract,citationCount,externalIds,publicationVenue'
+        })
+        url = f"{SEMANTIC_SCHOLAR_API}/search?{params}"
+        try:
+            data = _request_json(url, headers=headers)
+        except Exception as e:
+            print(f"  Semantic Scholar search error: {e}")
+            break
+        items = data.get('data', [])
+        if not items:
+            break
+        for item in items:
+            all_papers.append(_build_ss_paper(item))
+        if len(items) < fetch:
+            break
+        offset += len(items)
+        time.sleep(PAGE_DELAY)
 
-        papers = []
-        for item in data.get('data', []):
-            paper = {
-                'title': item.get('title', ''),
-                'year': item.get('year', ''),
-                'abstract': item.get('abstract', ''),
-                'citation_count': item.get('citationCount', 0),
-                'authors': [a.get('name', '') for a in item.get('authors', [])],
-                'external_ids': item.get('externalIds', {}),
-                'venue': item.get('publicationVenue', {}).get('name', ''),
-                'source': 'semantic_scholar'
-            }
-            papers.append(paper)
-
-        return papers
-
-    except Exception as e:
-        print(f"  Semantic Scholar search error: {e}")
-        return []
+    return all_papers
 
 
 def search_crossref(
     query: str,
     api_config: APIConfig,
-    rows: int = 50,
+    rows: int = 200,
 ) -> List[Dict[str, Any]]:
-    """Search CrossRef. Returns papers with DOIs and BibTeX-ready metadata."""
-    params = urllib.parse.urlencode({
-        'query': query,
-        'rows': min(rows, 50),
-        'select': 'DOI,title,author,abstract,container-title,volume,page,ISSN,URL,published-print,published-online,issued'
-    })
-    url = f"{CROSSREF_API}?{params}"
+    """Search CrossRef with pagination (50 per page via 'offset')."""
+    effective_max = min(rows, MAX_PER_SOURCE)
+    all_papers: List[Dict[str, Any]] = []
+    offset = 0
+    user_agent = 'MedAI/1.1'
+    if api_config.crossref_email:
+        user_agent = f"{user_agent} (mailto:{api_config.crossref_email})"
+    cr_headers = {'User-Agent': user_agent, 'Accept': 'application/json'}
 
-    try:
-        user_agent = 'MedAI/1.1'
-        if api_config.crossref_email:
-            user_agent = f"{user_agent} (mailto:{api_config.crossref_email})"
-        req = urllib.request.Request(
-            url,
-            headers={
-                'User-Agent': user_agent,
-                'Accept': 'application/json'
-            }
-        )
-        with urllib.request.urlopen(req, timeout=30) as resp:
-            data = json.loads(resp.read().decode('utf-8'))
+    while len(all_papers) < effective_max:
+        remaining = effective_max - len(all_papers)
+        fetch = min(50, remaining)
+        params = urllib.parse.urlencode({
+            'query': query,
+            'rows': fetch,
+            'offset': offset,
+            'select': 'DOI,title,author,abstract,container-title,volume,page,ISSN,URL,published-print,published-online,issued'
+        })
+        url = f"{CROSSREF_API}?{params}"
+        try:
+            data = _request_json(url, headers=cr_headers)
+        except Exception as e:
+            print(f"  CrossRef search error: {e}")
+            break
+        items = data.get('message', {}).get('items', [])
+        if not items:
+            break
+        for item in items:
+            all_papers.append(_build_cr_paper(item))
+        if len(items) < fetch:
+            break
+        offset += len(items)
+        time.sleep(PAGE_DELAY)
 
-        papers = []
-        for item in data.get('message', {}).get('items', []):
-            paper = {
-                'title': ' '.join(item.get('title', [''])),
-                'doi': item.get('DOI', ''),
-                'authors': [a.get('family', '') for a in item.get('author', []) if a.get('family')],
-                'abstract': item.get('abstract', ''),
-                'journal': item.get('container-title', [''])[0] if item.get('container-title') else '',
-                'volume': item.get('volume', ''),
-                'pages': item.get('page', ''),
-                'year': _crossref_year(item),
-                'source': 'crossref'
-            }
-            papers.append(paper)
-
-        return papers
-
-    except Exception as e:
-        print(f"  CrossRef search error: {e}")
-        return []
+    return all_papers
 
 
-def search_openalex(query: str, per_page: int = 50) -> List[Dict[str, Any]]:
-    """Search OpenAlex. Broad coverage including non-English works."""
-    params = urllib.parse.urlencode({
-        'filter': f'title.search:{query}',
-        'per_page': min(per_page, 50),
-        'sort': 'cited_by_count:desc'
-    })
-    url = f"{OPENALEX_API}?{params}"
+def search_openalex(query: str, per_page: int = 200) -> List[Dict[str, Any]]:
+    """Search OpenAlex with pagination (50 per page via 'page' param)."""
+    effective_max = min(per_page, MAX_PER_SOURCE)
+    all_papers: List[Dict[str, Any]] = []
+    page = 1
 
-    try:
-        data = _request_json(url, headers={'User-Agent': 'MedAI/1.1'})
+    while len(all_papers) < effective_max:
+        remaining = effective_max - len(all_papers)
+        fetch = min(50, remaining)
+        params = urllib.parse.urlencode({
+            'filter': f'title.search:{query}',
+            'per_page': fetch,
+            'page': page,
+            'sort': 'cited_by_count:desc'
+        })
+        url = f"{OPENALEX_API}?{params}"
+        try:
+            data = _request_json(url, headers={'User-Agent': 'MedAI/1.1'})
+        except Exception as e:
+            print(f"  OpenAlex search error: {e}")
+            break
+        items = data.get('results', [])
+        if not items:
+            break
+        for item in items:
+            all_papers.append(_build_oa_paper(item))
+        if len(items) < fetch:
+            break
+        page += 1
+        time.sleep(PAGE_DELAY)
 
-        papers = []
-        for item in data.get('results', []):
-            paper = {
-                'title': item.get('title', ''),
-                'doi': item.get('doi', ''),
-                'cited_by_count': item.get('cited_by_count', 0),
-                'authors': [a.get('author', {}).get('display_name', '') for a in item.get('authorships', [])],
-                'open_access': item.get('open_access', {}).get('is_oa', False),
-                'concepts': [c.get('display_name', '') for c in item.get('concepts', [])[:5]],
-                'year': item.get('publication_year', ''),
-                'source': 'openalex'
-            }
-            papers.append(paper)
-
-        return papers
-
-    except Exception as e:
-        print(f"  OpenAlex search error: {e}")
-        return []
+    return all_papers
 
 
 def deduplicate_papers(
@@ -618,7 +666,7 @@ def main():
 
     results = search_all(
         args.query,
-        max_per_source=max(1, min(args.max_per_source, 200)),
+        max_per_source=max(1, min(args.max_per_source, MAX_PER_SOURCE)),
         since_year=args.since_year,
         open_access_only=args.open_access_only,
         domain=args.domain,
